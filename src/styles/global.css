@@ -1,0 +1,74 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #app { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  background: #f0f2f5;
+  color: #1f2937;
+}
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+.n-config-provider { height: 100%; }
+
+/* Layout */
+.app-layout { display: flex; flex-direction: column; height: 100%; }
+.app-main { display: flex; flex: 1; overflow: hidden; }
+
+/* MindMap panel */
+.mm-panel {
+  flex: 1; min-width: 0; background: #fff; margin: 10px 0 10px 10px;
+  border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); position: relative; overflow: hidden;
+}
+.mm-panel .chart { width: 100%; height: 100%; }
+
+/* Detail panel */
+.detail-panel {
+  width: 420px; flex-shrink: 0; margin: 10px; background: #fff;
+  border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.detail-empty, .detail-content { padding: 20px; }
+.detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; text-align: center; gap: 8px; }
+.detail-meta { font-size: .75rem; color: #6b7280; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 14px; }
+.detail-meta:empty { display: none; }
+.exam-point-item { display: flex; align-items: center; gap: 6px; padding: 5px 10px; margin-bottom: 4px; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 0 5px 5px 0; font-size: .82rem; }
+.question-rel-item { padding: 8px 12px; background: #f8fafc; border-radius: 6px; margin-bottom: 6px; font-size: .82rem; border-left: 3px solid #3b82f6; }
+
+/* Question type tags */
+.q-type-tag { display: inline-block; padding: 0 5px; border-radius: 3px; font-size: .7rem; font-weight: 600; margin-right: 4px; }
+.q-type-简答 { background: #dbeafe; color: #1d4ed8; }
+.q-type-选择 { background: #fce7f3; color: #be185d; }
+.q-type-填空 { background: #d1fae5; color: #047857; }
+
+/* Context menu */
+.chart-context-menu {
+  position: absolute; background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 50;
+  min-width: 140px; overflow: hidden;
+}
+.chart-context-menu .menu-item {
+  padding: 10px 16px; cursor: pointer; font-size: .82rem; display: flex; align-items: center; gap: 8px;
+}
+.chart-context-menu .menu-item:hover { background: #eef2ff; color: #4f46e5; }
+
+/* Install banner */
+.install-banner {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 80;
+  background: #fff; border-top: 1px solid #e5e7eb; padding: 12px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.06); animation: slideUpBanner .3s ease;
+}
+@keyframes slideUpBanner { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Practice */
+.practice-answer-text { padding: 14px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 0 8px 8px 0; line-height: 1.7; }
+.practice-result-score { font-size: 3rem; font-weight: 700; color: #4f46e5; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-main { flex-direction: column; }
+  .mm-panel { margin: 6px; height: 40vh; }
+  .detail-panel { width: auto; margin: 0 6px 6px; max-height: 40vh; }
+}
