@@ -24,6 +24,7 @@ const showQBank = ref(false)
 const showPractice = ref(false)
 const showUpload = ref(false)
 const chartRef = ref(null)
+const initError = ref(null)
 
 // ECharts
 const { initChart, renderTree, resize, dispose, contextMenu, hideContextMenu } = useECharts((event, data) => {
@@ -42,15 +43,27 @@ const practicedCount = computed(() => practiceStore.getPracticedNodes(sectionsSt
 
 // Initialize
 onMounted(async () => {
-  await sectionsStore.load()
-  await mindmapStore.load(sectionsStore.currentId)
-  await qbStore.load(sectionsStore.currentId)
-  await practiceStore.load(sectionsStore.currentId)
-  nextTick(() => {
+  try {
+    await sectionsStore.load()
+    await mindmapStore.load(sectionsStore.currentId)
+    await qbStore.load(sectionsStore.currentId)
+    await practiceStore.load(sectionsStore.currentId)
+    await nextTick()
     if (chartRef.value) initChart(chartRef.value)
     renderTree(currentTree.value)
-  })
-  window.addEventListener('resize', resize)
+    window.addEventListener('resize', resize)
+    // Hide loading
+    const loading = document.getElementById('app-loading')
+    if (loading) loading.style.display = 'none'
+    console.log('[App] Initialized successfully, section:', sectionsStore.currentId, 'nodes:', nodeCount.value)
+  } catch (e) {
+    console.error('[App] Init error:', e)
+    initError.value = e.message || String(e)
+    const loading = document.getElementById('app-loading')
+    if (loading) loading.style.display = 'none'
+    const errDiv = document.getElementById('app-error')
+    if (errDiv) { errDiv.style.display = 'flex'; document.getElementById('app-error-msg').textContent = e.stack || e.message }
+  }
 })
 
 onUnmounted(() => { window.removeEventListener('resize', resize); dispose() })
@@ -120,10 +133,7 @@ function onStartPractice(nodeId) {
 // Export/Import
 const message = useMessage()
 function exportData() {
-  const data = {
-    sections: sectionsStore.list,
-    mindmaps: {}, questionBanks: {}, practices: {}
-  }
+  const data = { sections: sectionsStore.list, mindmaps: {}, questionBanks: {}, practices: {} }
   sectionsStore.list.forEach(s => {
     data.mindmaps[s.id] = mindmapStore.getTree(s.id)
     data.questionBanks[s.id] = qbStore.getAll(s.id)
@@ -136,7 +146,6 @@ function exportData() {
   message.success('数据已导出')
 }
 
-const importInput = ref(null)
 function triggerImport() {
   const input = document.createElement('input')
   input.type = 'file'; input.accept = '.json'
@@ -168,7 +177,7 @@ function triggerImport() {
 // Watch for tree changes to re-render
 watch(currentTree, (tree) => { if (tree) renderTree(tree) }, { deep: true })
 
-// Context menu actions
+// Context menu
 watch(() => contextMenu.value.show, (v) => {
   if (!v) return
   const handler = () => { hideContextMenu(); document.removeEventListener('click', handler, true) }
@@ -191,75 +200,60 @@ function onContextAction(action) {
 </script>
 
 <template>
-  <n-config-provider :theme-overrides="{ common: { primaryColor: '#4f46e5' } }">
-    <div class="app-layout">
-      <AppHeader
-        :sections="sectionsStore.list"
-        :current-id="sectionsStore.currentId"
-        :node-count="nodeCount"
-        :question-count="questionCount"
-        :practiced-count="practicedCount"
-        @switch="onSwitchSection"
-        @create="onCreateSection"
-        @delete="onDeleteSection"
-        @open-qbank="onOpenQBank()"
-        @upload="showUpload = true"
-        @export="exportData"
-        @import="triggerImport"
-      />
-
-      <div class="app-main">
-        <!-- Mind Map -->
-        <div class="mm-panel">
-          <div ref="chartRef" class="chart"></div>
-          <!-- Context Menu -->
-          <div v-if="contextMenu.show" class="chart-context-menu"
-               :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }">
-            <div class="menu-item" @click="onContextAction('addChild')">➕ 添加子节点</div>
-            <div class="menu-item" @click="onContextAction('edit')">✏️ 编辑名称</div>
-            <div class="menu-item" style="color:#ef4444" @click="onContextAction('delete')">🗑️ 删除节点</div>
-          </div>
-        </div>
-
-        <!-- Detail Panel -->
-        <DetailPanel
-          :node="currentNode"
-          :section-id="sectionsStore.currentId"
-          @rename="(name) => onRename(currentNodeId, name)"
-          @add-child="(name) => onAddChild(currentNodeId, name)"
-          @delete="() => onDeleteNode(currentNodeId)"
-          @update-exam-points="(pts) => mindmapStore.updateExamPoints(sectionsStore.currentId, currentNodeId, pts)"
-          @add-question="onOpenQBank(currentNodeId)"
-          @start-practice="onStartPractice(currentNodeId)"
-        />
+  <n-config-provider>
+    <n-message-provider>
+      <!-- Error state -->
+      <div v-if="initError" style="padding:40px;text-align:center">
+        <h2 style="color:#ef4444;margin-bottom:12px">应用启动失败</h2>
+        <pre style="background:#fef2f2;padding:16px;border-radius:8px;max-width:600px;margin:0 auto;font-size:.8rem;white-space:pre-wrap">{{ initError }}</pre>
       </div>
 
-      <!-- Modals -->
-      <QuestionBankModal
-        v-if="showQBank"
-        :section-id="sectionsStore.currentId"
-        :preset-node-id="currentNodeId"
-        @close="showQBank = false"
-      />
+      <!-- Normal app -->
+      <div v-else class="app-layout">
+        <AppHeader
+          :sections="sectionsStore.list"
+          :current-id="sectionsStore.currentId"
+          :node-count="nodeCount"
+          :question-count="questionCount"
+          :practiced-count="practicedCount"
+          @switch="onSwitchSection"
+          @create="onCreateSection"
+          @delete="onDeleteSection"
+          @open-qbank="onOpenQBank()"
+          @upload="showUpload = true"
+          @export="exportData"
+          @import="triggerImport"
+        />
 
-      <PracticeModal
-        v-if="showPractice"
-        :section-id="sectionsStore.currentId"
-        :node-id="currentNodeId"
-        @close="showPractice = false"
-      />
+        <div class="app-main">
+          <div class="mm-panel">
+            <div ref="chartRef" class="chart"></div>
+            <div v-if="contextMenu.show" class="chart-context-menu"
+                 :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }">
+              <div class="menu-item" @click="onContextAction('addChild')">➕ 添加子节点</div>
+              <div class="menu-item" @click="onContextAction('edit')">✏️ 编辑名称</div>
+              <div class="menu-item" style="color:#ef4444" @click="onContextAction('delete')">🗑️ 删除节点</div>
+            </div>
+          </div>
 
-      <UploadPdfModal
-        v-if="showUpload"
-        :sections="sectionsStore.list"
-        :current-section-id="sectionsStore.currentId"
-        :loading="pdfLoading"
-        :progress="pdfProgress"
-        @close="showUpload = false"
-        @upload="onUploadPdf"
-      />
+          <DetailPanel
+            :node="currentNode"
+            :section-id="sectionsStore.currentId"
+            @rename="(name) => onRename(currentNodeId, name)"
+            @add-child="(name) => onAddChild(currentNodeId, name)"
+            @delete="() => onDeleteNode(currentNodeId)"
+            @update-exam-points="(pts) => mindmapStore.updateExamPoints(sectionsStore.currentId, currentNodeId, pts)"
+            @add-question="onOpenQBank(currentNodeId)"
+            @start-practice="onStartPractice(currentNodeId)"
+          />
+        </div>
 
-      <InstallBanner />
-    </div>
+        <QuestionBankModal v-if="showQBank" :section-id="sectionsStore.currentId" :preset-node-id="currentNodeId" @close="showQBank = false" />
+        <PracticeModal v-if="showPractice" :section-id="sectionsStore.currentId" :node-id="currentNodeId" @close="showPractice = false" />
+        <UploadPdfModal v-if="showUpload" :sections="sectionsStore.list" :current-section-id="sectionsStore.currentId"
+          :loading="pdfLoading" :progress="pdfProgress" @close="showUpload = false" @upload="onUploadPdf" />
+        <InstallBanner />
+      </div>
+    </n-message-provider>
   </n-config-provider>
 </template>

@@ -2,9 +2,9 @@ import * as pdfjsLib from 'pdfjs-dist'
 import { uid, addIds, deepClone } from '../utils/helpers.js'
 import { MINDMAP_TEMPLATES, TOPIC_DETECTORS } from '../data/templates.js'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url
-).toString()
+// Use CDN worker to avoid Vite bundler issues at module eval time
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs'
 
 export function usePdfParser() {
   const loading = ref(false)
@@ -40,7 +40,7 @@ export function usePdfParser() {
       const matched = keywords.filter(k => text.toLowerCase().includes(k.toLowerCase()))
       if (matched.length > 0) {
         const extractedNode = {
-          name: `📄 PDF: ${file.name}`,
+          name: `PDF: ${file.name}`,
           children: matched.slice(0, 5).map(t => ({
             name: t,
             examPoints: [`从PDF识别的「${t}」相关考点`, '建议结合教材深入学习', '历年考研重点考查内容']
@@ -51,7 +51,6 @@ export function usePdfParser() {
         base.children.push(extractedNode)
       }
 
-      // Mark all generated nodes with metadata
       markSource(base, file.name)
       addIds(base)
       progress.value = '完成'

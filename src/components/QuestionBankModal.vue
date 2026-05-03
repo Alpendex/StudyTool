@@ -1,4 +1,5 @@
 <script setup>
+import { h } from 'vue'
 import { useQuestionBankStore } from '../stores/questionBank.js'
 import { useMindmapStore } from '../stores/mindmap.js'
 import { findNode } from '../utils/helpers.js'
