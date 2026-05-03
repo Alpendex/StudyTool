@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考研学习工具 v1.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root {
+  --bg: #f0f2f5;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-secondary: #6b7280;
+  --primary: #4f46e5;
+  --primary-light: #eef2ff;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --math: #3b82f6;
+  --english: #10b981;
+  --politics: #ef4444;
+  --cs: #8b5cf6;
+  --bagu: #f59e0b;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,.1);
+  --transition: 0.2s ease;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+.header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Section Tabs ── */
+.section-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 3px;
+}
+.section-tab {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.section-tab:hover { color: var(--text); background: rgba(255,255,255,.6); }
+.section-tab.active { color: #fff; font-weight: 600; }
+.section-tab.math.active { background: var(--math); }
+.section-tab.english.active { background: var(--english); }
+.section-tab.politics.active { background: var(--politics); }
+.section-tab.cs.active { background: var(--cs); }
+.section-tab.bagu.active { background: var(--bagu); }
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #4338ca; }
+.btn-outline { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #059669; }
+
+/* ── Main Layout ── */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.mindmap-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  margin: 16px 0 16px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.detail-panel {
+  width: 420px;
+  flex-shrink: 0;
+  margin: 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.detail-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  padding: 40px;
+  text-align: center;
+  gap: 12px;
+}
+.detail-empty .icon { font-size: 3rem; opacity: .5; }
+.detail-content { padding: 24px; display: none; }
+.detail-content.active { display: block; }
+
+.detail-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--primary-light);
+  color: var(--primary);
+}
+.detail-section { margin-bottom: 20px; }
+.detail-section h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.exam-point { padding: 8px 12px; background: #fffbeb; border-left: 3px solid var(--warning); margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: .875rem; }
+.example-item { padding: 12px; background: #f8fafc; border-radius: 8px; margin-bottom: 10px; font-size: .85rem; }
+.example-item .q { font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+.example-item .a { color: var(--text-secondary); padding-top: 6px; border-top: 1px dashed var(--border); margin-top: 6px; display: none; }
+.example-item .a.show { display: block; }
+.toggle-answer { font-size: .78rem; color: var(--primary); cursor: pointer; background: none; border: none; padding: 4px 0; }
+.practice-btn { width: 100%; margin-top: 16px; padding: 12px; font-size: 1rem; }
+
+/* ── Stats Bar ── */
+.stats-bar {
+  height: 44px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 32px;
+  font-size: .8rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.stats-bar span strong { color: var(--text); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .2s ease;
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp .25s ease;
+}
+.modal-header {
+  padding: 20px 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-header h2 { font-size: 1.1rem; }
+.modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); padding: 4px 8px; border-radius: 6px; }
+.modal-close:hover { background: var(--bg); }
+.modal-body { padding: 20px 24px 24px; }
+.modal-footer { padding: 0 24px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── Upload Zone ── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 16px;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+.upload-zone .icon { font-size: 2.5rem; margin-bottom: 8px; }
+.upload-zone p { font-size: .875rem; color: var(--text-secondary); }
+.upload-section-select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .9rem; margin-bottom: 12px; background: var(--surface); }
+.upload-hint { font-size: .78rem; color: var(--danger); margin-top: 6px; display: none; }
+
+/* ── Practice Modal ── */
+.practice-step { text-align: center; color: var(--text-secondary); font-size: .85rem; margin-bottom: 12px; }
+.practice-question { font-size: 1rem; font-weight: 500; padding: 16px; background: var(--bg); border-radius: 8px; margin-bottom: 16px; line-height: 1.7; }
+.practice-answer { padding: 16px; background: #f0fdf4; border-left: 3px solid var(--success); border-radius: 0 8px 8px 0; margin-bottom: 16px; display: none; line-height: 1.7; }
+.practice-answer.show { display: block; }
+.practice-actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+.practice-result { text-align: center; padding: 30px; }
+.practice-result .score { font-size: 3rem; font-weight: 700; color: var(--primary); }
+.practice-result .summary { font-size: 1rem; color: var(--text-secondary); margin: 8px 0 20px; }
+
+/* ── Loading ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,.85);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+.loading-text { font-size: .9rem; color: var(--text-secondary); }
+
+/* ── Animations ── */
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+@keyframes spin { to { transform:rotate(360deg) } }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .main { flex-direction: column; }
+  .mindmap-panel { margin: 8px; height: 45vh; }
+  .detail-panel { width: auto; margin: 0 8px 8px; max-height: 45vh; }
+  .header { flex-wrap: wrap; height: auto; padding: 10px 12px; gap: 8px; }
+  .section-tab { padding: 6px 12px; font-size: 0.8rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ Header ═══ -->
+<header class="header">
+  <h1>考研学习工具 v1.0</h1>
+  <div class="section-tabs" id="sectionTabs">
+    <button class="section-tab math active" data-section="math">📐 考研数学</button>
+    <button class="section-tab english" data-section="english">📖 考研英语</button>
+    <button class="section-tab politics" data-section="politics">📋 考研政治</button>
+    <button class="section-tab cs" data-section="cs">💻 408计算机</button>
+    <button class="section-tab bagu" data-section="bagu">📚 八股文</button>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-outline btn-sm" id="btnExport">📥 导出数据</button>
+    <button class="btn btn-outline btn-sm" id="btnImport">📤 导入数据</button>
+    <button class="btn btn-primary" id="btnUpload">📄 上传PDF</button>
+  </div>
+</header>
+
+<!-- ═══ Main ═══ -->
+<div class="main">
+  <div class="mindmap-panel" id="mindmapPanel"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-empty" id="detailEmpty">
+      <div class="icon">👆</div>
+      <p>点击思维导图节点<br>查看知识点详情</p>
+      <p style="font-size:.8rem;color:#cbd5e1">或上传PDF生成导图</p>
+    </div>
+    <div class="detail-content" id="detailContent">
+      <div class="detail-title" id="detailTitle"></div>
+      <div class="detail-section">
+        <h3>📌 高频考点</h3>
+        <div id="examPoints"></div>
+      </div>
+      <div class="detail-section">
+        <h3>📝 典型例题</h3>
+        <div id="examples"></div>
+      </div>
+      <button class="btn btn-primary practice-btn" id="btnPractice">🎯 开始练习（3道题）</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Stats Bar ═══ -->
+<div class="stats-bar">
+  <span>总节点: <strong id="statTotal">0</strong></span>
+  <span>已练习: <strong id="statPracticed">0</strong></span>
+  <span>当前板块: <strong id="statSection">考研数学</strong></span>
+</div>
+
+<!-- ═══ Hidden file input ═══ -->
+<input type="file" id="fileInput" accept=".pdf" style="display:none">
+
+<!-- ═══ Import file input ═══ -->
+<input type="file" id="importInput" accept=".json" style="display:none">
+
+<script>
+// ═══════════════════════════════════════════
+//  PDF.js Worker
+// ═══════════════════════════════════════════
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ═══════════════════════════════════════════
+//  Constants
+// ═══════════════════════════════════════════
+const SECTIONS = ['math', 'english', 'politics', 'cs', 'bagu'];
+const SECTION_LABELS = {
+  math: '考研数学', english: '考研英语', politics: '考研政治',
+  cs: '408计算机', bagu: '八股文'
+};
+const LS_PREFIX = 'study_tool_v1_';
+
+// ═══════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════
+let currentSection = 'math';
+let currentMindMap = null;       // Full data tree with extras
+let currentNodeId = null;
+let chartInstance = null;
+let practiceState = null;        // { questions, currentIndex, results }
+
+// ═══════════════════════════════════════════
+//  Mock Mind Map Templates
+// ═══════════════════════════════════════════
+const SECTION_TEMPLATES = {
+  math: {
+    name: '考研数学',
+    children: [
+      {
+        name: '高等数学', children: [
+          { name: '函数与极限', examPoints: ['极限的四则运算', '两个重要极限', '无穷小的比较', '连续与间断点判定'], examples: [{q:'求极限 lim(x→0) (sin x)/x',a:'= 1，利用重要极限'},{q:'判断 f(x)=|x| 在 x=0 处的连续性',a:'连续但不可导，左导数=-1 右导数=1'}] },
+          { name: '导数与微分', examPoints: ['导数的定义与几何意义', '复合函数求导法则', '隐函数与参数方程求导', '高阶导数计算'], examples: [{q:'求 y=x²sin x 的导数',a:'y\'=2x sin x + x² cos x'},{q:'求椭圆 x²/4+y²/9=1 在点(0,3)处的切线方程',a:'隐函数求导得 y\'= -9x/4y，点(0,3)处 y\'=0，切线 y=3'}] },
+          { name: '不定积分', examPoints: ['基本积分公式', '换元积分法', '分部积分法', '有理函数积分'], examples: [{q:'∫ x·cos x dx',a:'= x sin x + cos x + C，分部积分法'}] },
+          { name: '常微分方程', examPoints: ['可分离变量方程', '一阶线性微分方程', '二阶常系数齐次方程', '特解形式设定'], examples: [{q:'解 y\'+2y=e^x',a:'齐次解 y=Ce^{-2x}，特解 y*=e^x/3，通解 y=Ce^{-2x}+e^x/3'}] }
+        ]
+      },
+      {
+        name: '线性代数', children: [
+          { name: '行列式', examPoints: ['行列式的性质', '按行/列展开', '范德蒙行列式', '克拉默法则'], examples: [{q:'计算三阶行列式 |1 2 3; 4 5 6; 7 8 9|',a:'= 0，行向量线性相关'}] },
+          { name: '矩阵', examPoints: ['矩阵的运算', '逆矩阵求法', '矩阵的秩', '初等变换'], examples: [{q:'求 A=[[1,2],[3,4]] 的逆矩阵',a:'A^{-1}=(-1/2)[[4,-2],[-3,1]] = [[-2,1],[1.5,-0.5]]'}] },
+          { name: '特征值与特征向量', examPoints: ['特征方程', '特征向量的求解', '矩阵可对角化条件', '实对称矩阵的对角化'], examples: [{q:'求 A=[[2,1],[1,2]] 的特征值',a:'|A-λE|=λ²-4λ+3=0，λ₁=1, λ₂=3'}] }
+        ]
+      },
+      {
+        name: '概率论与数理统计', children: [
+          { name: '随机事件与概率', examPoints: ['条件概率与乘法公式', '全概率公式', '贝叶斯公式', '独立性'], examples: [{q:'P(A)=0.3, P(B)=0.4, P(A∪B)=0.6，求P(A|B)',a:'P(AB)=0.1，P(A|B)=0.1/0.4=0.25'}] },
+          { name: '随机变量与分布', examPoints: ['分布函数性质', '常见离散分布', '常见连续分布', '正态分布标准化'], examples: [{q:'X~N(μ,σ²)，求P(|X-μ|<σ)',a:'标准化后 P(|Z|<1) ≈ 0.6826'}] }
+        ]
+      }
+    ]
+  },
+  english: {
+    name: '考研英语',
+    children: [
+      {
+        name: '阅读理解', children: [
+          { name: '细节理解题', examPoints: ['定位原文关键信息', '同义替换识别', '排除干扰项', '数据与事实匹配'], examples: [{q:'According to the passage, which of the following is true?',a:'回原文精确定位，注意同义改写，排除绝对化选项'}] },
+          { name: '推理判断题', examPoints: ['隐含意义推断', '作者态度识别', '上下文逻辑推理', '段落主旨概括'], examples: [{q:'What can be inferred from Paragraph 3?',a:'不选原文直接陈述，选基于原文的合理推断，注意"infer/suggest/imply"标志词'}] },
+          { name: '主旨大意题', examPoints: ['全文主旨概括', '最佳标题选择', '作者写作目的', '篇章结构分析'], examples: [{q:'Which is the best title for this passage?',a:'主旨通常出现在首段末句或末段首句，标题需涵盖全文核心'}] },
+          { name: '词义猜测题', examPoints: ['上下文线索分析', '构词法推断', '逻辑关系判断', '近义反义替换'], examples: [{q:'The word "xxx" in Paragraph 2 is closest in meaning to...',a:'看上下文逻辑关系（并列/转折/因果），辅助构词法判断'}] }
+        ]
+      },
+      {
+        name: '写作', children: [
+          { name: '小作文（应用文）', examPoints: ['书信格式（称呼/正文/落款）', '通知/备忘录格式', '语气得体（正式/半正式）', '要点全覆盖'], examples: [{q:'Write a letter to recommend a book to your friend.',a:'三段式：①寒暄+目的 ②推荐理由（2-3点）③期待反馈，注意书信格式'}] },
+          { name: '大作文（议论文）', examPoints: ['图表/图画描述', '现象分析角度', '原因与影响阐述', '建议与展望'], examples: [{q:'Write an essay based on the chart about mobile reading.',a:'①描述图表趋势 ②分析原因（科技发展/便利性）③影响与展望'}] }
+        ]
+      },
+      {
+        name: '翻译（英译汉）', children: [
+          { name: '长难句拆分', examPoints: ['主干结构识别', '定语从句处理', '状语成分翻译', '被动语态转换'], examples: [{q:'Translate: It is a truth universally acknowledged that a single man in possession of a good fortune must be in want of a wife.',a:'凡是有钱的单身汉，总想娶位太太，这是一条举世公认的真理。注意形式主语的翻译策略'}] }
+        ]
+      }
+    ]
+  },
+  politics: {
+    name: '考研政治',
+    children: [
+      {
+        name: '马克思主义基本原理', children: [
+          { name: '唯物辩证法', examPoints: ['对立统一规律', '量变质变规律', '否定之否定规律', '五对基本范畴'], examples: [{q:'简述矛盾的特殊性及其方法论意义',a:'矛盾的特殊性指不同事物及其不同方面的矛盾各有特点。方法论：具体问题具体分析'}] },
+          { name: '认识论', examPoints: ['实践与认识的辩证关系', '认识的两次飞跃', '真理的绝对性与相对性', '检验真理的标准'], examples: [{q:'为什么说实践是检验真理的唯一标准？',a:'①真理的本性决定 ②实践的特点决定（直接现实性）③逻辑证明不能替代实践'}] }
+        ]
+      },
+      {
+        name: '毛泽东思想和中国特色社会主义理论体系', children: [
+          { name: '新民主主义革命理论', examPoints: ['新民主主义革命的总路线', '革命道路理论（农村包围城市）', '三大法宝（统一战线/武装斗争/党的建设）', '新民主主义社会性质'], examples: [{q:'新民主主义革命与旧民主主义革命的根本区别是什么？',a:'领导阶级不同（无产阶级 vs 资产阶级），属于世界无产阶级革命的一部分'}] },
+          { name: '习近平新时代中国特色社会主义思想', examPoints: ['"八个明确"', '"十四个坚持"', '中国式现代化', '高质量发展'], examples: [{q:'简述中国式现代化的五个特征',a:'人口规模巨大、共同富裕、物质精神双文明、人与自然和谐共生、和平发展'}] }
+        ]
+      },
+      {
+        name: '中国近现代史纲要', children: [
+          { name: '近代中国社会性质与主要矛盾', examPoints: ['半殖民地半封建社会', '两大历史任务', '帝国主义与中华民族的矛盾', '封建主义与人民大众的矛盾'], examples: [{q:'近代中国社会的主要矛盾是什么？',a:'帝国主义与中华民族的矛盾、封建主义与人民大众的矛盾，前者是最主要的矛盾'}] }
+        ]
+      }
+    ]
+  },
+  cs: {
+    name: '408计算机专业基础综合',
+    children: [
+      {
+        name: '数据结构', children: [
+          { name: '线性表', examPoints: ['顺序表与链表的比较', '单链表基本操作', '双链表与循环链表', '栈与队列的应用'], examples: [{q:'用两个栈实现一个队列',a:'栈A入队，栈B出队。出队时若B空则将A全部倒入B。均摊O(1)'},{q:'链表反转的迭代实现',a:'pre=null, cur=head; while(cur){ next=cur.next; cur.next=pre; pre=cur; cur=next; }'}] },
+          { name: '树与二叉树', examPoints: ['二叉树遍历（前/中/后/层）', '二叉搜索树操作', '平衡二叉树（AVL）', '哈夫曼树与哈夫曼编码'], examples: [{q:'给定前序和中序，画出二叉树',a:'前序首元素为根，在中序中找到根位置，递归构造左右子树'}] },
+          { name: '图', examPoints: ['图的存储（邻接矩阵/邻接表）', 'DFS与BFS', '最小生成树（Prim/Kruskal）', '最短路径（Dijkstra/Floyd）', '拓扑排序'], examples: [{q:'Dijkstra算法能否处理负权边？',a:'不能。Dijkstra基于贪心，要求边权非负。负权边使用Bellman-Ford或SPFA'}] },
+          { name: '排序', examPoints: ['快速排序（枢轴选择）', '堆排序（建堆/调整）', '归并排序', '各排序算法复杂度比较', '稳定性分析'], examples: [{q:'快速排序最坏时间复杂度及场景',a:'O(n²)，发生在每次划分极不平衡时（如已有序且选首元素为枢轴）'}] }
+        ]
+      },
+      {
+        name: '计算机组成原理', children: [
+          { name: '数据的表示与运算', examPoints: ['原码/反码/补码/移码', 'IEEE 754浮点数', 'ALU设计', '定点数与浮点数运算'], examples: [{q:'-13的8位补码表示',a:'13=00001101，-13补=11110011'}] },
+          { name: '存储系统', examPoints: ['Cache映射方式', '虚拟存储器', '页式/段式/段页式管理', 'TLB'], examples: [{q:'Cache的三种映射方式比较',a:'直接映射-简单但冲突多；全相联-灵活但硬件复杂；组相联-折中，实际最常用'}] },
+          { name: '指令系统与CPU', examPoints: ['指令格式与寻址方式', '指令流水线', '数据冒险与控制冒险', 'CISC vs RISC'], examples: [{q:'流水线的三种冒险及解决方法',a:'结构冒险-资源分离；数据冒险-转发/旁路；控制冒险-分支预测/延迟槽'}] }
+        ]
+      },
+      {
+        name: '操作系统', children: [
+          { name: '进程管理', examPoints: ['进程状态转换', '进程同步与互斥', '死锁（必要条件/银行家算法）', 'PV操作'], examples: [{q:'用PV操作实现生产者-消费者问题',a:'mutex=1, empty=N, full=0; 生产者P(empty)P(mutex)放入V(mutex)V(full)'}] },
+          { name: '内存管理', examPoints: ['连续分配方式', '分页与分段', '页面置换算法（OPT/LRU/FIFO/CLOCK）', '缺页率计算'], examples: [{q:'LRU与OPT的区别',a:'OPT置换未来最远使用的页面（理论最优），LRU置换过去最久未使用的页面（近似最优）'}] }
+        ]
+      },
+      {
+        name: '计算机网络', children: [
+          { name: 'TCP/IP协议栈', examPoints: ['OSI七层模型', 'TCP三次握手/四次挥手', 'TCP拥塞控制', 'UDP特点与应用'], examples: [{q:'为什么TCP握手是三次而非两次？',a:'防止已失效的连接请求到达服务器导致错误建立连接，同时实现双向序列号同步'}] },
+          { name: '应用层协议', examPoints: ['HTTP/HTTPS', 'DNS解析过程', 'FTP主动/被动模式', 'SMTP/POP3'], examples: [{q:'输入URL到页面显示的全过程',a:'DNS解析→TCP连接→TLS握手(HTTPS)→发送HTTP请求→服务器处理→接收响应→浏览器渲染'}] }
+        ]
+      }
+    ]
+  },
+  bagu: {
+    name: '八股文（前端面试）',
+    children: [
+      {
+        name: 'JavaScript核心', children: [
+          { name: '闭包与作用域', examPoints: ['闭包的定义与原理', '作用域链', '闭包的内存泄漏问题', '实际应用场景（防抖/节流/模块化）'], examples: [{q:'写出一个防抖函数',a:'function debounce(fn,delay){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),delay)}}'},{q:'闭包经典问题：for循环中的setTimeout',a:'var→let解决块级作用域；或用闭包保存每次的i值：(function(i){setTimeout(()=>console.log(i),i*1000)})(i)'}] },
+          { name: '原型链与继承', examPoints: ['prototype与__proto__', '原型链查找机制', 'ES6 class语法糖', 'instanceof原理'], examples: [{q:'实现instanceof',a:'function myInstanceof(obj,ctor){let p=Object.getPrototypeOf(obj);while(p){if(p===ctor.prototype)return true;p=Object.getPrototypeOf(p)}return false}'}] },
+          { name: '异步编程', examPoints: ['Event Loop（宏任务/微任务）', 'Promise/A+规范', 'async/await原理', '并发控制'], examples: [{q:'Promise.all和Promise.race的区别',a:'all:所有成功才成功，有一个失败就失败；race:第一个完成的决定结果。还有allSettled(全部完成)和any(任意成功)'}] }
+        ]
+      },
+      {
+        name: 'CSS布局', children: [
+          { name: '盒模型与BFC', examPoints: ['标准盒模型 vs IE盒模型', 'box-sizing属性', 'BFC触发条件', 'margin重叠问题'], examples: [{q:'如何解决margin重叠？',a:'①触发BFC（overflow:hidden）②使用padding替代 ③添加border/padding隔离 ④使用flex/grid布局'}] },
+          { name: 'Flex与Grid', examPoints: ['Flex容器属性（主轴/交叉轴）', 'Flex项目属性（flex-grow/shrink/basis）', 'Grid模板定义', 'Grid区域命名与对齐'], examples: [{q:'实现水平垂直居中（至少3种方法）',a:'①Flex:display:flex+justify-content:center+align-items:center ②Grid:place-items:center ③Absolute+transform:translate(-50%,-50%) ④table-cell'}] }
+        ]
+      },
+      {
+        name: 'React/Vue框架', children: [
+          { name: 'React Hooks', examPoints: ['useState与useReducer', 'useEffect清理机制', 'useMemo与useCallback', '自定义Hook'], examples: [{q:'useEffect的依赖数组为空、不传、有值分别代表什么？',a:'[]仅在挂载时执行（+清理在卸载时）；不传每次渲染都执行；[a,b]在a或b变化时执行'}] },
+          { name: '性能优化', examPoints: ['虚拟列表', '代码分割（React.lazy）', 'memo/PureComponent', '不可变数据'], examples: [{q:'React.memo和useMemo的区别',a:'React.memo是HOC用于组件（浅比较props），useMemo是Hook用于值（缓存计算结果）'}] }
+        ]
+      },
+      {
+        name: '网络与浏览器', children: [
+          { name: 'HTTP协议', examPoints: ['HTTP 1.1/2/3区别', 'HTTPS加密原理', '强缓存与协商缓存', '跨域解决方案'], examples: [{q:'CORS的简单请求与预检请求区别',a:'简单请求：GET/POST/HEAD+简单头，直接发。非简单请求先发OPTIONS预检，通过后再发实际请求'}] },
+          { name: '浏览器渲染', examPoints: ['DOM树与CSSOM树构建', '回流与重绘', '合成层与GPU加速', 'script的async与defer'], examples: [{q:'什么操作会触发回流？',a:'修改几何属性（width/height/padding/margin）、访问offsetTop等、修改DOM结构、改变字体、窗口resize'}] }
+        ]
+      }
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════
+//  Generic Practice Question Bank (per section)
+// ═══════════════════════════════════════════
+const PRACTICE_BANK = {
+  math: [
+    {q:'求极限 lim(x→0) (1-cos x)/x²',a:'= 1/2。利用等价无穷小 1-cos x ~ x²/2'},
+    {q:'设 f(x) 在 [a,b] 上连续，(a,b) 内可导，f(a)=f(b)，则至少存在一点 ξ∈(a,b) 使得 f\'(ξ)=0。这是哪个定理？',a:'罗尔定理（Rolle\'s Theorem）'},
+    {q:'计算 ∫₀¹ x·e^x dx',a:'= 1。分部积分法：∫x e^x dx = x e^x - e^x + C'},
+    {q:'矩阵 A=[[1,1],[0,1]] 是否可对角化？',a:'不可对角化。特征值 λ=1（二重），但特征向量只有1个线性无关的'},
+    {q:'设随机变量 X~N(0,1)，求 P(-1<X<1)',a:'≈ 0.6827，即 Φ(1)-Φ(-1)=2Φ(1)-1'},
+    {q:'解微分方程 dy/dx = y/x + x',a:'一阶线性方程，y = x(C + x) = Cx + x²'},
+    {q:'n阶方阵A可逆的充要条件有哪些？',a:'|A|≠0；r(A)=n；Ax=0只有零解；A的特征值全不为零；A与E等价'},
+    {q:'求函数 y=x³-3x 的极值点与拐点',a:'极值点 x=±1（y\'=0），拐点 x=0（y\'\'=0且变号）。极大值 y(-1)=2，极小值 y(1)=-2'}
+  ],
+  english: [
+    {q:'The word "mitigate" in Paragraph 2 is closest in meaning to ____.',a:'alleviate / reduce。mitigate表示"减轻、缓解"'},
+    {q:'Which of the following best summarizes the author\'s attitude toward AI technology?',a:'Cautiously optimistic（谨慎乐观）。注意识别态度词：cautious/skeptical/optimistic/neutral'},
+    {q:'翻译：The swift development of artificial intelligence has brought unprecedented challenges to traditional education.',a:'人工智能的快速发展给传统教育带来了前所未有的挑战。'},
+    {q:'Write an opening paragraph for an essay about online education.',a:'With the rapid advancement of digital technology, online education has emerged as a transformative force, reshaping how knowledge is delivered and acquired. While it offers unparalleled flexibility, it also raises concerns about learning effectiveness.'},
+    {q:'What rhetorical device is used in "Time is a thief"?',a:'Metaphor（隐喻）。将时间比作小偷，暗示时间悄然流逝'},
+    {q:'How should you structure a complaint letter?',a:'①礼貌开头，说明写信目的 ②详细描述问题（时间、产品、具体问题）③提出期望的解决方案 ④礼貌收尾，期待回复'}
+  ],
+  politics: [
+    {q:'简述矛盾普遍性与特殊性的辩证关系',a:'①普遍性寓于特殊性之中 ②特殊性包含普遍性 ③两者在一定条件下相互转化。是共性与个性、绝对与相对的关系'},
+    {q:'为什么说人民群众是历史的创造者？',a:'①人民群众是社会物质财富的创造者 ②是社会精神财富的创造者 ③是社会变革的决定力量'},
+    {q:'中国式现代化的本质要求是什么？',a:'坚持党的领导，坚持中国特色社会主义，实现高质量发展，发展全过程人民民主，丰富人民精神世界，实现全体人民共同富裕，促进人与自然和谐共生，推动构建人类命运共同体，创造人类文明新形态'},
+    {q:'价值规律的内容和作用是什么？',a:'内容：商品价值量由社会必要劳动时间决定，实行等价交换。作用：①调节资源配置 ②刺激技术进步 ③导致优胜劣汰'},
+    {q:'简述"两个结合"的深刻内涵',a:'把马克思主义基本原理同中国具体实际相结合，同中华优秀传统文化相结合。这是开辟和发展中国特色社会主义的必由之路'}
+  ],
+  cs: [
+    {q:'快速排序在什么情况下时间复杂度退化为O(n²)？如何避免？',a:'当每次选择的枢轴恰好是当前区间的最小或最大值时（如已有序数据）。避免方法：随机选择枢轴、三数取中、使用插入排序处理小区间'},
+    {q:'简述TCP拥塞控制的四个阶段',a:'①慢启动（指数增长）②拥塞避免（线性增长）③快速重传（收到3个重复ACK）④快速恢复（减半后线性增长）'},
+    {q:'死锁的四个必要条件是什么？',a:'①互斥条件 ②请求与保持 ③不可剥夺 ④循环等待。破坏任一条件即可预防死锁'},
+    {q:'在一个有n个节点的二叉搜索树中，查找的时间复杂度是多少？',a:'平均O(log n)，最坏O(n)（树退化为链表时）。平衡二叉树可保证O(log n)'},
+    {q:'虚拟内存的页面置换算法中，Belady异常发生在哪个算法？',a:'FIFO（先进先出）算法。即分配更多物理页框反而导致缺页率升高。LRU和OPT不会出现Belady异常'},
+    {q:'比较TCP和UDP的主要区别',a:'TCP面向连接、可靠传输（确认/重传）、流量控制、拥塞控制，开销大；UDP无连接、尽力而为、低延迟，适用于视频/语音/DNS'}
+  ],
+  bagu: [
+    {q:'什么是事件循环（Event Loop）？宏任务和微任务有什么区别？',a:'JS是单线程的，Event Loop是其异步机制。宏任务：script/setTimeout/setInterval/I/O；微任务：Promise.then/MutationObserver。每次宏任务执行完后清空所有微任务，再取下一个宏任务'},
+    {q:'实现一个深拷贝函数',a:'function deepClone(obj,map=new WeakMap()){if(typeof obj!="object"||!obj)return obj;if(map.has(obj))return map.get(obj);let r=Array.isArray(obj)?[]:{};map.set(obj,r);for(let k in obj)r[k]=deepClone(obj[k],map);return r}'},
+    {q:'React中，为什么不能在循环/条件语句中调用Hooks？',a:'React依赖Hooks调用顺序来维护状态。条件/循环中调用会打乱顺序，导致状态错乱。Hooks必须在函数组件顶层调用'},
+    {q:'什么是CSS的BFC？如何触发？',a:'块级格式化上下文，独立的渲染区域。触发条件：overflow非visible、float非none、position absolute/fixed、display inline-block/flex/grid。用于解决margin重叠、清除浮动'},
+    {q:'跨域请求的解决方案有哪些？',a:'①CORS（服务端设置Access-Control头）②JSONP（仅GET）③代理服务器（开发环境proxy）④postMessage + iframe ⑤WebSocket ⑥Nginx反向代理'},
+    {q:'虚拟DOM的原理和优势',a:'用JS对象模拟DOM树，diff算法比较新旧虚拟树，批量更新真实DOM。优势：减少直接DOM操作、跨平台抽象、声明式编程'}
+  ]
+};
+
+// ═══════════════════════════════════════════
+//  Utility Functions
+// ═══════════════════════════════════════════
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function uid() { return 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+
+function lsGet(key) {
+  try { const v = localStorage.getItem(LS_PREFIX + key); return v ? JSON.parse(v) : null; }
+  catch(e) { return null; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(LS_PREFIX + key, JSON.stringify(val)); }
+  catch(e) { showToast('存储空间不足，请清理数据'); }
+}
+
+// ═══════════════════════════════════════════
+//  Data Management
+// ═══════════════════════════════════════════
+function getSectionData(section) {
+  let data = lsGet('section_' + section);
+  if (!data) {
+    data = JSON.parse(JSON.stringify(SECTION_TEMPLATES[section]));
+    addIds(data);
+    lsSet('section_' + section, data);
+  }
+  return data;
+}
+
+function saveSectionData(section, data) {
+  lsSet('section_' + section, data);
+}
+
+function addIds(node) {
+  node.id = uid();
+  if (node.children) node.children.forEach(addIds);
+}
+
+function ensureIds(node) {
+  if (!node.id) node.id = uid();
+  if (node.children) node.children.forEach(ensureIds);
+}
+
+function getPracticeRecords(section) {
+  return lsGet('practice_' + section) || {};
+}
+
+function savePracticeRecord(section, nodeId, score) {
+  const records = getPracticeRecords(section);
+  if (!records[nodeId]) records[nodeId] = [];
+  records[nodeId].push({ date: Date.now(), score });
+  lsSet('practice_' + section, records);
+}
+
+function getNodePracticeCount(section, nodeId) {
+  const records = getPracticeRecords(section);
+  return records[nodeId] ? records[nodeId].length : 0;
+}
+
+// ═══════════════════════════════════════════
+//  Find node by ID in tree
+// ═══════════════════════════════════════════
+function findNode(tree, id) {
+  if (!tree) return null;
+  if (tree.id === id) return tree;
+  if (tree.children) {
+    for (const child of tree.children) {
+      const found = findNode(child, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════
+//  Count total nodes
+// ═══════════════════════════════════════════
+function countNodes(node) {
+  if (!node) return 0;
+  let n = 1;
+  if (node.children) node.children.forEach(c => n += countNodes(c));
+  return n;
+}
+
+function countPracticedNodes(section) {
+  const records = getPracticeRecords(section);
+  return Object.keys(records).length;
+}
+
+function updateStats() {
+  const total = countNodes(currentMindMap);
+  const practiced = countPracticedNodes(currentSection);
+  $('#statTotal').textContent = total;
+  $('#statPracticed').textContent = practiced;
+  $('#statSection').textContent = SECTION_LABELS[currentSection];
+}
+
+// ═══════════════════════════════════════════
+//  Transform data for ECharts tree
+// ═══════════════════════════════════════════
+function toEChartsTree(node, depth = 0) {
+  const result = { name: node.name, id: node.id };
+  if (node.children && node.children.length > 0) {
+    result.children = node.children.map(c => toEChartsTree(c, depth + 1));
+  }
+  if (depth >= 2) result.collapsed = true;
+  return result;
+}
+
+// ═══════════════════════════════════════════
+//  Render Mind Map
+// ═══════════════════════════════════════════
+function renderMindMap() {
+  const container = $('#mindmapPanel');
+  if (!chartInstance) {
+    chartInstance = echarts.init(container);
+    chartInstance.on('click', onNodeClick);
+    window.addEventListener('resize', () => chartInstance && chartInstance.resize());
+  }
+
+  const option = {
+    tooltip: { trigger: 'item', triggerOn: 'mousemove' },
+    series: [{
+      type: 'tree',
+      data: [toEChartsTree(currentMindMap)],
+      top: '5%', left: '8%', bottom: '5%', right: '15%',
+      symbolSize: 10,
+      orient: 'LR',
+      label: {
+        position: 'left', verticalAlign: 'middle', align: 'right',
+        fontSize: 13, fontWeight: 500, color: '#1f2937'
+      },
+      leaves: { label: { position: 'right', verticalAlign: 'middle', align: 'left' } },
+      emphasis: {
+        focus: 'descendant',
+        itemStyle: { color: '#4f46e5' }
+      },
+      expandAndCollapse: true,
+      animationDuration: 400,
+      animationDurationUpdate: 300,
+      lineStyle: { color: '#cbd5e1', width: 1.5, curveness: 0.5 },
+      roam: true
+    }]
+  };
+  chartInstance.setOption(option, true);
+}
+
+// ═══════════════════════════════════════════
+//  Node Click Handler
+// ═══════════════════════════════════════════
+function onNodeClick(params) {
+  if (!params.data || !params.data.id) return;
+  currentNodeId = params.data.id;
+  const node = findNode(currentMindMap, currentNodeId);
+  if (!node) return;
+  showDetail(node);
+}
+
+function showDetail(node) {
+  $('#detailEmpty').style.display = 'none';
+  const content = $('#detailContent');
+  content.classList.add('active');
+  $('#detailTitle').textContent = '📖 ' + node.name;
+
+  // Exam points
+  const epDiv = $('#examPoints');
+  if (node.examPoints && node.examPoints.length > 0) {
+    epDiv.innerHTML = node.examPoints.map(p => `<div class="exam-point">${p}</div>`).join('');
+  } else {
+    epDiv.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem">暂无该节点的考点数据</p>';
+  }
+
+  // Examples
+  const exDiv = $('#examples');
+  if (node.examples && node.examples.length > 0) {
+    exDiv.innerHTML = node.examples.map((ex, i) => `
+      <div class="example-item">
+        <div class="q">Q${i+1}: ${ex.q}</div>
+        <div class="a" id="exampleAns${i}">💡 ${ex.a}</div>
+        <button class="toggle-answer" data-idx="${i}">显示答案 ▾</button>
+      </div>
+    `).join('');
+    exDiv.querySelectorAll('.toggle-answer').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = this.dataset.idx;
+        const ans = $('#exampleAns' + idx);
+        const isOpen = ans.classList.toggle('show');
+        this.textContent = isOpen ? '收起答案 ▴' : '显示答案 ▾';
+      });
+    });
+  } else {
+    exDiv.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem">暂无该节点的例题数据</p>';
+  }
+
+  content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ═══════════════════════════════════════════
+//  Practice Mode
+// ═══════════════════════════════════════════
+function openPractice() {
+  if (!currentNodeId) return;
+  const node = findNode(currentMindMap, currentNodeId);
+  if (!node) return;
+
+  const nodeName = node.name;
+  // Pick questions from the bank based on section, plus any from the node itself
+  const bank = PRACTICE_BANK[currentSection] || [];
+  // Use node examples if available, otherwise sample from bank
+  let questions = [];
+  if (node.examples && node.examples.length >= 3) {
+    questions = node.examples.slice(0, 3).map(ex => ({ q: ex.q, a: ex.a }));
+  } else {
+    const shuffled = [...bank].sort(() => Math.random() - 0.5);
+    questions = shuffled.slice(0, 3);
+  }
+  // Fill shortfall
+  if (questions.length < 3) {
+    const more = [...bank].sort(() => Math.random() - 0.5);
+    questions = [...questions, ...more.slice(0, 3 - questions.length)];
+  }
+
+  practiceState = { nodeId: currentNodeId, nodeName, questions, currentIndex: 0, results: [] };
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'practiceOverlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <h2>🎯 练习模式 — ${nodeName}</h2>
+        <button class="modal-close" onclick="closePractice()">✕</button>
+      </div>
+      <div class="modal-body" id="practiceBody"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  renderPracticeQuestion();
+}
+
+function closePractice() {
+  const overlay = $('#practiceOverlay');
+  if (overlay) overlay.remove();
+  practiceState = null;
+}
+
+function renderPracticeQuestion() {
+  if (!practiceState) return;
+  const { questions, currentIndex, results } = practiceState;
+
+  const body = $('#practiceBody');
+  if (!body) return;
+
+  // Check if done
+  if (currentIndex >= questions.length) {
+    const correct = results.filter(r => r === 'correct').length;
+    const total = results.length;
+    body.innerHTML = `
+      <div class="practice-result">
+        <div class="score">${correct}/${total}</div>
+        <div class="summary">正确率: ${Math.round(correct/total*100)}%</div>
+        <div style="margin-bottom:16px;color:var(--text-secondary)">
+          ${correct === total ? '太棒了，全部正确！🎉' : correct >= total/2 ? '不错，继续加油！💪' : '还需要多多练习哦！📚'}
+        </div>
+        <button class="btn btn-outline" onclick="closePractice()">关闭</button>
+      </div>
+    `;
+    savePracticeRecord(currentSection, practiceState.nodeId, correct);
+    updateStats();
+    return;
+  }
+
+  const q = questions[currentIndex];
+  const isRevealed = results[currentIndex] !== undefined;
+  const answered = results[currentIndex];
+
+  body.innerHTML = `
+    <div class="practice-step">第 ${currentIndex + 1} / ${questions.length} 题</div>
+    <div class="practice-question">${q.q}</div>
+    <div class="practice-answer ${isRevealed ? 'show' : ''}" id="practiceAns">💡 ${q.a}</div>
+    ${!isRevealed ? `
+      <div class="practice-actions">
+        <button class="btn btn-primary" onclick="revealAnswer()">显示答案</button>
+      </div>
+    ` : `
+      <div style="text-align:center;font-size:.9rem;font-weight:500;margin-bottom:8px;color:${answered==='correct'?'var(--success)':'var(--danger)'}">
+        你的自评: ${answered === 'correct' ? '✅ 正确' : '❌ 错误'}
+      </div>
+      <div class="practice-actions">
+        ${currentIndex < questions.length - 1 ? `
+          <button class="btn btn-success" onclick="nextQuestion()">下一题 →</button>
+        ` : `
+          <button class="btn btn-success" onclick="nextQuestion()">查看结果 →</button>
+        `}
+      </div>
+      <div class="practice-actions" style="margin-top:8px">
+        <button class="btn btn-outline btn-sm" onclick="retrySelfEval()">重新自评</button>
+      </div>
+    `}
+  `;
+}
+
+function revealAnswer() {
+  if (!practiceState) return;
+  practiceState.results[practiceState.currentIndex] = null; // not yet self-evaluated
+  renderPracticeQuestion();
+  // Now update to show self-eval buttons
+  const body = $('#practiceBody');
+  const actionsDiv = body.querySelector('.practice-actions');
+  if (actionsDiv) {
+    actionsDiv.innerHTML = `
+      <button class="btn btn-success" onclick="selfEval('correct')" style="flex:1">✅ 正确</button>
+      <button class="btn" style="flex:1;background:var(--danger);color:#fff" onclick="selfEval('incorrect')">❌ 错误</button>
+    `;
+  }
+}
+
+function selfEval(result) {
+  if (!practiceState) return;
+  practiceState.results[practiceState.currentIndex] = result;
+  renderPracticeQuestion();
+}
+
+function nextQuestion() {
+  if (!practiceState) return;
+  practiceState.currentIndex++;
+  renderPracticeQuestion();
+}
+
+function retrySelfEval() {
+  if (!practiceState) return;
+  practiceState.results[practiceState.currentIndex] = undefined;
+  renderPracticeQuestion();
+  // Re-show eval buttons after a tick
+  setTimeout(() => {
+    const body = $('#practiceBody');
+    if (!body) return;
+    const actionsDiv = body.querySelector('.practice-actions');
+    if (actionsDiv && practiceState && practiceState.results[practiceState.currentIndex] === undefined) {
+      actionsDiv.innerHTML = `
+        <button class="btn btn-success" onclick="selfEval('correct')" style="flex:1">✅ 正确</button>
+        <button class="btn" style="flex:1;background:var(--danger);color:#fff" onclick="selfEval('incorrect')">❌ 错误</button>
+      `;
+    }
+  }, 50);
+}
+
+// ═══════════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════════
+function showToast(msg, duration = 2500) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position:fixed; bottom:40px; left:50%; transform:translateX(-50%);
+    background:#1f2937; color:#fff; padding:12px 24px; border-radius:8px;
+    font-size:.875rem; z-index:300; animation:slideUp .25s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 300); }, duration);
+}
+
+// ═══════════════════════════════════════════
+//  Loading Overlay
+// ═══════════════════════════════════════════
+function showLoading(text = '正在分析PDF，生成思维导图...') {
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.id = 'loadingOverlay';
+  overlay.innerHTML = `<div class="spinner"></div><div class="loading-text">${text}</div>`;
+  document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+  const overlay = $('#loadingOverlay');
+  if (overlay) overlay.remove();
+}
+
+// ═══════════════════════════════════════════
+//  PDF Processing & Mock LLM
+// ═══════════════════════════════════════════
+async function processPDF(arrayBuffer, section) {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = pdf.numPages;
+
+  // Extract text from first 10 pages (for demo performance)
+  const pagesToRead = Math.min(totalPages, 10);
+  let extractedText = '';
+  for (let i = 1; i <= pagesToRead; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    extractedText += pageText + '\n';
+  }
+
+  // Simulate LLM processing delay (2-5 seconds)
+  const delay = 2000 + Math.random() * 3000;
+  await new Promise(r => setTimeout(r, delay));
+
+  // Generate mind map based on section + extracted keywords
+  const newMindMap = generateMockMindMap(section, extractedText, totalPages);
+  addIds(newMindMap);
+
+  return newMindMap;
+}
+
+function generateMockMindMap(section, text, pageCount) {
+  // Start from base template
+  const base = JSON.parse(JSON.stringify(SECTION_TEMPLATES[section]));
+
+  // Simulate "LLM" customization based on extracted text
+  const lowerText = text.toLowerCase();
+
+  // Detect some topics from text to vary the result
+  const topicDetectors = {
+    math: ['极限', '导数', '积分', '矩阵', '概率', '微分方程', '特征值', '行列式'],
+    english: ['reading', 'writing', 'translation', 'vocabulary', 'grammar', 'essay'],
+    politics: ['矛盾', '实践', '社会主义', '现代化', '价值', '人民', '发展'],
+    cs: ['算法', '数据结构', '排序', '进程', 'TCP', 'Cache', '操作系', '网络'],
+    bagu: ['闭包', 'Promise', 'React', 'CSS', 'HTTP', '原型', 'async', '组件']
+  };
+
+  const detectors = topicDetectors[section] || [];
+  const matchedTopics = detectors.filter(t => lowerText.includes(t.toLowerCase()));
+
+  // If we found matching topics, add a "从PDF抽取" marker node
+  if (matchedTopics.length > 0 && base.children.length > 0) {
+    const extractedNode = {
+      name: `📄 PDF抽取要点 (${pageCount}页)`,
+      children: matchedTopics.slice(0, 5).map(t => ({
+        name: t + ' (从PDF识别)',
+        examPoints: ['该知识点在历年考试中出现频率较高', '注意与其他知识点的综合运用', '建议结合真题进行针对性训练'],
+        examples: [{ q: `关于"${t}"的典型题目（基于PDF内容生成）`, a: `参考教材中关于${t}的详细讲解与例题解析` }]
+      }))
+    };
+    base.children.push(extractedNode);
+  }
+
+  return base;
+}
+
+// ═══════════════════════════════════════════
+//  Merge mind maps (incremental upload)
+// ═══════════════════════════════════════════
+function mergeMindMaps(existing, incoming) {
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+
+  const merged = JSON.parse(JSON.stringify(existing));
+  ensureIds(merged);
+
+  // Merge children by name
+  const existingChildNames = new Map();
+  if (merged.children) {
+    merged.children.forEach(c => existingChildNames.set(c.name, c));
+  } else {
+    merged.children = [];
+  }
+
+  if (incoming.children) {
+    for (const incChild of incoming.children) {
+      if (existingChildNames.has(incChild.name)) {
+        // Merge children of this child
+        const existChild = existingChildNames.get(incChild.name);
+        if (incChild.children && incChild.children.length > 0) {
+          if (!existChild.children) existChild.children = [];
+          const existSubNames = new Set(existChild.children.map(c => c.name));
+          for (const sub of incChild.children) {
+            if (!existSubNames.has(sub.name)) {
+              existChild.children.push(sub);
+            }
+          }
+        }
+      } else {
+        // New top-level topic
+        merged.children.push(incChild);
+      }
+    }
+  }
+
+  return merged;
+}
+
+// ═══════════════════════════════════════════
+//  Upload PDF Flow
+// ═══════════════════════════════════════════
+function triggerUpload() {
+  $('#fileInput').click();
+}
+
+async function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  // Show upload modal to confirm section
+  showUploadModal(file);
+}
+
+function showUploadModal(file) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'uploadModal';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📄 上传PDF</h2>
+        <button class="modal-close" onclick="closeUploadModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:12px;font-size:.9rem">文件: <strong>${file.name}</strong> (${(file.size/1024/1024).toFixed(2)} MB)</p>
+        <label style="font-size:.875rem;font-weight:500;display:block;margin-bottom:6px;">选择导入板块:</label>
+        <select class="upload-section-select" id="uploadSectionSelect">
+          ${SECTIONS.map(s => `<option value="${s}" ${s === currentSection ? 'selected' : ''}>${SECTION_LABELS[s]}</option>`).join('')}
+        </select>
+        <div class="upload-hint" id="uploadHint">文件页数超过100页，无法处理</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeUploadModal()">取消</button>
+        <button class="btn btn-primary" id="confirmUpload">开始上传与分析</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  $('#confirmUpload').addEventListener('click', async () => {
+    const section = $('#uploadSectionSelect').value;
+    closeUploadModal();
+    await doUpload(file, section);
+  });
+}
+
+function closeUploadModal() {
+  const overlay = $('#uploadModal');
+  if (overlay) overlay.remove();
+}
+
+async function doUpload(file, section) {
+  showLoading('正在解析PDF并提取文本...');
+
+  try {
+    // Check page count first
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdf.numPages;
+
+    if (totalPages > 100) {
+      hideLoading();
+      showToast('文件页数超过100页，请上传100页以内的PDF');
+      return;
+    }
+
+    if (totalPages === 0) {
+      hideLoading();
+      showToast('PDF文件为空，请上传有效文件');
+      return;
+    }
+
+    // Process PDF and generate mind map (loading stays visible inside)
+    const newMindMap = await processPDF(arrayBuffer, section);
+
+    // Merge with existing
+    const existing = getSectionData(section);
+    const merged = mergeMindMaps(existing, newMindMap);
+    saveSectionData(section, merged);
+
+    // Switch to the section if needed
+    if (currentSection !== section) {
+      switchSection(section);
+    } else {
+      currentMindMap = merged;
+      renderMindMap();
+      updateStats();
+    }
+
+    hideLoading();
+    showToast(`PDF分析完成！已生成 ${countNodes(newMindMap)} 个知识点节点`);
+  } catch (err) {
+    hideLoading();
+    console.error('Upload error:', err);
+    showToast('PDF处理失败: ' + (err.message || '未知错误'));
+  }
+}
+
+// ═══════════════════════════════════════════
+//  Section Switching
+// ═══════════════════════════════════════════
+function switchSection(section) {
+  currentSection = section;
+  currentMindMap = getSectionData(section);
+  currentNodeId = null;
+
+  // Update tabs
+  $$('.section-tab').forEach(tab => tab.classList.remove('active'));
+  const activeTab = document.querySelector(`.section-tab[data-section="${section}"]`);
+  if (activeTab) activeTab.classList.add('active');
+
+  // Reset detail
+  $('#detailContent').classList.remove('active');
+  $('#detailEmpty').style.display = 'flex';
+
+  // Save section preference
+  lsSet('current_section', section);
+
+  renderMindMap();
+  updateStats();
+}
+
+// ═══════════════════════════════════════════
+//  Export / Import
+// ═══════════════════════════════════════════
+function exportAllData() {
+  const allData = {};
+  SECTIONS.forEach(s => {
+    allData[s] = getSectionData(s);
+  });
+  allData._practice = {};
+  SECTIONS.forEach(s => {
+    allData._practice[s] = getPracticeRecords(s);
+  });
+
+  const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `study_tool_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('数据导出成功');
+}
+
+function triggerImport() {
+  $('#importInput').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      let imported = 0;
+      SECTIONS.forEach(s => {
+        if (data[s]) {
+          saveSectionData(s, data[s]);
+          imported++;
+        }
+      });
+      if (data._practice) {
+        SECTIONS.forEach(s => {
+          if (data._practice[s]) {
+            lsSet('practice_' + s, data._practice[s]);
+          }
+        });
+      }
+      // Reload current section
+      switchSection(currentSection);
+      showToast(`导入完成: ${imported} 个板块的数据已恢复`);
+    } catch (err) {
+      showToast('导入失败: 文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════
+//  Initialize
+// ═══════════════════════════════════════════
+function init() {
+  // Restore last section
+  const savedSection = lsGet('current_section');
+  if (savedSection && SECTIONS.includes(savedSection)) {
+    currentSection = savedSection;
+  }
+
+  // Load data
+  currentMindMap = getSectionData(currentSection);
+  ensureIds(currentMindMap);
+
+  // Set active tab
+  $$('.section-tab').forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.dataset.section === currentSection) tab.classList.add('active');
+  });
+
+  // Render
+  renderMindMap();
+  updateStats();
+
+  // Event listeners
+  $('#sectionTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.section-tab');
+    if (!tab) return;
+    switchSection(tab.dataset.section);
+  });
+
+  $('#btnUpload').addEventListener('click', triggerUpload);
+  $('#fileInput').addEventListener('change', handleFileSelect);
+  $('#btnExport').addEventListener('click', exportAllData);
+  $('#btnImport').addEventListener('click', triggerImport);
+  $('#importInput').addEventListener('change', handleImport);
+  $('#btnPractice').addEventListener('click', openPractice);
+
+  // Close modals on overlay click
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) {
+      if (e.target.id === 'practiceOverlay') closePractice();
+      if (e.target.id === 'uploadModal') closeUploadModal();
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closePractice();
+      closeUploadModal();
+    }
+    // Ctrl+1..5 to switch sections
+    if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
+      e.preventDefault();
+      const idx = parseInt(e.key) - 1;
+      switchSection(SECTIONS[idx]);
+    }
+  });
+}
+
+// Start
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
