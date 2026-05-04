@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist'
-import { uid, addIds, deepClone } from '../utils/helpers.js'
+import { uid, deepClone } from '../utils/helpers.js'
+import { addIds } from '../utils/mindmapHelper.js'
 import { MINDMAP_TEMPLATES, TOPIC_DETECTORS } from '../data/templates.js'
 
 // Use CDN worker to avoid Vite bundler issues at module eval time
@@ -18,8 +19,11 @@ export function usePdfParser() {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
       const totalPages = pdf.numPages
 
-      // Extract text from first 8 pages
-      const pagesToRead = Math.min(totalPages, 8)
+      // Extract text from first 200 pages (large file warning but no block)
+      if (totalPages > 200) {
+        progress.value = `文件较大（${totalPages}页），仅解析前200页...`
+      }
+      const pagesToRead = Math.min(totalPages, 200)
       let text = ''
       for (let i = 1; i <= pagesToRead; i++) {
         const page = await pdf.getPage(i)
