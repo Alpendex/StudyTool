@@ -7,8 +7,8 @@ export const DEFAULT_SECTIONS = [
 ]
 
 export const SECTION_COLORS = {
-  math: '#3b82f6', english: '#10b981', politics: '#ef4444',
-  cs: '#8b5cf6', bagu: '#f59e0b', custom: '#6366f1'
+  math: '#0052FF', english: '#10B981', politics: '#EF4444',
+  cs: '#8B5CF6', bagu: '#F59E0B', custom: '#0052FF'
 }
 
 export const MINDMAP_TEMPLATES = {

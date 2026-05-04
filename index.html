@@ -3,19 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#4f46e5" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0052FF" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="考研学习" />
   <meta name="description" content="考研学习思维导图工具" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Calistoga&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <title>考研学习工具</title>
+  <script>
+    (function() {
+      var theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <style>
-    body { margin:0; background:#f0f2f5; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+    body { margin:0; background:#0A0C12; font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color:#EDEFF5; }
+    [data-theme="light"] body { background:#f8f9fb; color:#18181b; }
     #app-loading { display:flex; align-items:center; justify-content:center; height:100vh; color:#9ca3af; font-size:.9rem; flex-direction:column; gap:12px; }
     #app-error { display:none; align-items:center; justify-content:center; height:100vh; color:#ef4444; font-size:.9rem; flex-direction:column; gap:12px; padding:20px; text-align:center; }
     #app-error pre { background:#fef2f2; padding:16px; border-radius:8px; max-width:600px; overflow-x:auto; font-size:.75rem; white-space:pre-wrap; }
+    [data-theme="light"] #app-error pre { background:#fef2f2; }
   </style>
 </head>
 <body>
