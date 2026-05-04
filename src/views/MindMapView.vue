@@ -16,7 +16,7 @@ const uiStore = useUiStore()
 
 const isDark = computed(() => uiStore.theme === 'dark')
 
-defineProps({ detailPanelOpen: Boolean })
+const props = defineProps({ detailPanelOpen: Boolean, highlightNodeIds: Array })
 
 const emit = defineEmits([
   'switchSection', 'createSection', 'deleteSection',
@@ -31,7 +31,7 @@ const sectionColors = {
   math: '#0052FF', english: '#10B981', politics: '#EF4444', cs: '#8B5CF6', bagu: '#F59E0B', custom: '#0052FF'
 }
 
-const { initChart, renderTree, resize, dispose, contextMenu, hideContextMenu } = useECharts((event, data) => {
+const { initChart, renderTree, resize, dispose, contextMenu, hideContextMenu, highlightNodes } = useECharts((event, data) => {
   if (event === 'nodeClick') { currentNodeId.value = data; emit('nodeClick', data) }
 })
 
@@ -54,6 +54,13 @@ onMounted(async () => {
 })
 
 onUnmounted(() => { window.removeEventListener('resize', resize); dispose() })
+
+// Highlight new nodes after import
+watch(() => props.highlightNodeIds, (ids) => {
+  if (ids?.length) {
+    nextTick(() => highlightNodes(ids))
+  }
+})
 
 // Context menu click-outside
 watch(() => contextMenu.value.show, (v) => {

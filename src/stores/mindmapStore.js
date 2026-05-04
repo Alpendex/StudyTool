@@ -3,7 +3,7 @@ import localforage from 'localforage'
 import { MINDMAP_TEMPLATES } from '../data/templates.js'
 import { uid, deepClone } from '../utils/helpers.js'
 import { addIds, ensureIds, findNode, findParent,
-         collectNodeIds, mergeMindMaps } from '../utils/mindmapHelper.js'
+         collectNodeIds, mergeMindMaps, mountSubtree } from '../utils/mindmapHelper.js'
 
 export const useMindmapStore = defineStore('mindmap', () => {
   const trees = ref({})
@@ -65,10 +65,24 @@ export const useMindmapStore = defineStore('mindmap', () => {
 
   async function mergeImport(sectionId, incoming) {
     const existing = trees.value[sectionId]
+    const before = new Set()
+    if (existing) collectNodeIds(existing, before)
     const merged = mergeMindMaps(existing, incoming)
+    const after = collectNodeIds(merged)
+    const newIds = [...after].filter(id => !before.has(id))
     trees.value[sectionId] = merged
     await save(sectionId)
-    return merged
+    return { mergedTree: merged, newIds }
+  }
+
+  async function mountUnder(sectionId, parentId, subtree) {
+    const existing = trees.value[sectionId]
+    const before = new Set()
+    if (existing) collectNodeIds(existing, before)
+    const { mergedTree, newIds } = mountSubtree(existing, parentId, subtree)
+    trees.value[sectionId] = mergedTree
+    await save(sectionId)
+    return { mergedTree, newIds }
   }
 
   async function updateExamPoints(sectionId, nodeId, points) {
@@ -78,5 +92,5 @@ export const useMindmapStore = defineStore('mindmap', () => {
     await save(sectionId)
   }
 
-  return { trees, load, save, getTree, addChild, rename, removeNode, mergeImport, updateExamPoints }
+  return { trees, load, save, getTree, addChild, rename, removeNode, mergeImport, mountUnder, updateExamPoints }
 })

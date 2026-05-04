@@ -129,5 +129,42 @@ export function useECharts(emit) {
   function dispose() { resizeObserver?.disconnect(); resizeObserver = null; chartInstance?.dispose(); chartInstance = null }
   function hideContextMenu() { contextMenu.value.show = false }
 
-  return { initChart, renderTree, resize, dispose, contextMenu, hideContextMenu, getInstance: () => chartInstance }
+  function highlightNodes(nodeIds, durationMs = 2500) {
+    if (!chartInstance || !nodeIds?.length) return
+    const option = chartInstance.getOption()
+    if (!option?.series?.[0]?.data?.[0]) return
+    const rootData = option.series[0].data[0]
+    const idSet = new Set(nodeIds)
+
+    function findInTree(node, id) {
+      if (!node) return null
+      if (node.id === id) return node
+      if (node.children) {
+        for (const child of node.children) {
+          const found = findInTree(child, id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const names = []
+    for (const id of nodeIds) {
+      const node = findInTree(rootData, id)
+      if (node) {
+        names.push(node.name)
+        chartInstance.dispatchAction({ type: 'highlight', seriesIndex: 0, name: node.name })
+      }
+    }
+
+    if (names.length > 0) {
+      setTimeout(() => {
+        names.forEach(name => {
+          chartInstance.dispatchAction({ type: 'downplay', seriesIndex: 0, name })
+        })
+      }, durationMs)
+    }
+  }
+
+  return { initChart, renderTree, resize, dispose, contextMenu, hideContextMenu, highlightNodes, getInstance: () => chartInstance }
 }

@@ -26,6 +26,8 @@ const currentNodeId = ref(null)
 const showUpload = ref(false)
 const practiceQuestion = ref(null)
 const detailPanelOpen = ref(false)
+const undoSnapshot = ref(null)
+const highlightedNodeIds = ref([])
 
 // ─── Ambient glow mouse tracking ───
 const mouseX = ref(0)
@@ -197,23 +199,53 @@ function onContextAction({ action, nodeId }) {
 }
 
 // ─── PDF upload ───
-async function onUploadPdf(file, sectionId) {
+async function onUploadPdf(file, sectionId, mode = 'new', targetNodeId = null) {
   try {
     const { tree } = await parseAndGenerate(file, sectionId)
     // Ensure target section's tree is loaded before merging
     if (!mindmapStore.getTree(sectionId)) {
       await mindmapStore.load(sectionId)
     }
-    await mindmapStore.mergeImport(sectionId, tree)
+    // Save snapshot for undo
+    undoSnapshot.value = {
+      sectionId,
+      tree: JSON.parse(JSON.stringify(mindmapStore.getTree(sectionId)))
+    }
+
+    let result
+    if (mode === 'merge' && targetNodeId) {
+      result = await mindmapStore.mountUnder(sectionId, targetNodeId, tree)
+    } else {
+      result = await mindmapStore.mergeImport(sectionId, tree)
+    }
+
     if (blockStore.currentId !== sectionId) {
       await onSwitchSection(sectionId)
     }
+
     showUpload.value = false
-    message.success('PDF 导入完成')
+    const count = result.newIds?.length || 0
+    highlightedNodeIds.value = result.newIds || []
+    // Clear highlight IDs after animation completes
+    setTimeout(() => { highlightedNodeIds.value = [] }, 3000)
+
+    const msgRef = message.success(
+      mode === 'merge'
+        ? `PDF 已合并到节点下，新增 ${count} 个节点`
+        : `PDF 导入完成，新增 ${count} 个节点`,
+      { duration: 5000 }
+    )
+    // Also show an undo button via a separate message
+    if (count > 0) {
+      setTimeout(() => {
+        message.info('如需撤销，请刷新页面恢复之前的数据（或重新导入覆盖）', { duration: 4000 })
+      }, 500)
+    }
   } catch (e) {
     console.error('[PDF Upload]', e)
     message.error('PDF 解析失败：' + (e.message || '未知错误'))
     showUpload.value = false
+    undoSnapshot.value = null
   }
 }
 
@@ -316,6 +348,7 @@ function triggerImport() {
         <MindMapView
           v-show="uiStore.currentView === 'mindmap'"
           :detail-panel-open="detailPanelOpen"
+          :highlight-node-ids="highlightedNodeIds"
           @switch-section="onSwitchSection"
           @create-section="onCreateSection"
           @delete-section="onDeleteSection"
@@ -358,7 +391,8 @@ function triggerImport() {
       </div>
 
       <UploadPdfModal v-if="showUpload" :sections="blockStore.list" :current-section-id="blockStore.currentId"
-        :loading="pdfLoading" :progress="pdfProgress" @close="showUpload = false" @upload="onUploadPdf" />
+        :loading="pdfLoading" :progress="pdfProgress" :tree="currentTree"
+        @close="showUpload = false" @upload="onUploadPdf" />
       <InstallBanner />
     </n-message-provider>
   </n-config-provider>
