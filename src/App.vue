@@ -1,64 +1,133 @@
 <script setup>
 import localforage from 'localforage'
-import { useSectionsStore } from './stores/sections.js'
-import { useMindmapStore } from './stores/mindmap.js'
-import { useQuestionBankStore } from './stores/questionBank.js'
-import { usePracticeStore } from './stores/practice.js'
-import { useECharts } from './composables/useECharts.js'
+import { createDiscreteApi, darkTheme } from 'naive-ui'
+const { message } = createDiscreteApi(['message'])
+import { useBlockStore } from './stores/blockStore.js'
+import { useMindmapStore } from './stores/mindmapStore.js'
+import { useQuestionStore } from './stores/questionStore.js'
+import { usePracticeStore } from './stores/practiceStore.js'
+import { useUiStore } from './stores/uiStore.js'
 import { usePdfParser } from './composables/usePdfParser.js'
-import { findNode, countAllNodes } from './utils/helpers.js'
-import AppHeader from './components/AppHeader.vue'
-import DetailPanel from './components/DetailPanel.vue'
-import QuestionBankModal from './components/QuestionBankModal.vue'
-import PracticeModal from './components/PracticeModal.vue'
-import UploadPdfModal from './components/UploadPdfModal.vue'
-import InstallBanner from './components/InstallBanner.vue'
+import { findNode, countAllNodes } from './utils/mindmapHelper.js'
+import AppHeader from './components/common/AppHeader.vue'
+import UploadPdfModal from './components/common/UploadPdfModal.vue'
+import InstallBanner from './components/common/InstallBanner.vue'
+import MindMapView from './views/MindMapView.vue'
+import QuestionBankView from './views/QuestionBankView.vue'
+import PracticeView from './views/PracticeView.vue'
 
-const sectionsStore = useSectionsStore()
+const blockStore = useBlockStore()
 const mindmapStore = useMindmapStore()
-const qbStore = useQuestionBankStore()
+const questionStore = useQuestionStore()
 const practiceStore = usePracticeStore()
+const uiStore = useUiStore()
 
 const currentNodeId = ref(null)
-const showQBank = ref(false)
-const showPractice = ref(false)
 const showUpload = ref(false)
-const chartRef = ref(null)
-const initError = ref(null)
+const practiceQuestion = ref(null)
+const detailPanelOpen = ref(false)
 
-// ECharts
-const { initChart, renderTree, resize, dispose, contextMenu, hideContextMenu } = useECharts((event, data) => {
-  if (event === 'nodeClick') currentNodeId.value = data
+// ─── Ambient glow mouse tracking ───
+const mouseX = ref(0)
+const mouseY = ref(0)
+let glowRaf = null
+function onMouseMove(e) {
+  if (!glowRaf) {
+    glowRaf = requestAnimationFrame(() => {
+      mouseX.value = (e.clientX / window.innerWidth) * 100
+      mouseY.value = (e.clientY / window.innerHeight) * 100
+      glowRaf = null
+    })
+  }
+}
+function openDetailPanel(nodeId) { currentNodeId.value = nodeId; detailPanelOpen.value = true }
+function closeDetailPanel() { detailPanelOpen.value = false; currentNodeId.value = null }
+
+// ─── Dark mode ───
+function toggleTheme() { uiStore.toggleTheme() }
+
+// ─── Naive UI theme overrides (theme-aware) ───
+const themeOverrides = computed(() => {
+  const isDark = uiStore.theme === 'dark'
+  return {
+    common: {
+      primaryColor: '#3B82F6',
+      primaryColorHover: '#60A5FA',
+      primaryColorPressed: '#2563EB',
+      primaryColorSuppl: isDark ? '#A855F7' : '#8B5CF6',
+      bodyColor: isDark ? '#0A0C12' : '#f8f9fb',
+      cardColor: isDark ? '#141824' : '#ffffff',
+      modalColor: isDark ? '#141824' : '#ffffff',
+      popoverColor: isDark ? '#181C28' : '#ffffff',
+      tableColor: isDark ? '#141824' : '#ffffff',
+      inputColor: isDark ? '#141824' : '#ffffff',
+      borderColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.08)',
+      dividerColor: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(0,0,0,0.06)',
+      borderRadius: '14px',
+      fontSize: '0.875rem',
+      fontFamily: 'var(--font-body)',
+      textColorBase: isDark ? '#EDEFF5' : '#18181b',
+    },
+    Button: {
+      borderRadiusSmall: '16px', borderRadiusMedium: '20px', borderRadiusLarge: '24px',
+      fontSizeSmall: '0.75rem', fontSizeMedium: '0.8125rem', fontSizeLarge: '0.9375rem',
+      paddingSmall: '6px 14px', paddingMedium: '8px 20px', paddingLarge: '12px 28px',
+      fontWeight: '500',
+      heightSmall: '30px', heightMedium: '38px', heightLarge: '48px',
+      textHover: 'rgba(59,130,246,0.08)',
+      textPressed: 'rgba(59,130,246,0.15)',
+      borderHover: isDark ? 'rgba(59,130,246,0.35)' : 'rgba(59,130,246,0.4)',
+      borderFocus: isDark ? 'rgba(59,130,246,0.6)' : 'rgba(59,130,246,0.5)',
+      rippleColor: isDark ? '#A855F7' : '#8B5CF6',
+    },
+    Card: { borderRadius: '24px', paddingMedium: '24px', paddingLarge: '32px' },
+    Input: {
+      borderRadius: '14px', heightLarge: '48px', heightMedium: '40px',
+      color: isDark ? '#141824' : '#ffffff',
+      colorFocus: isDark ? '#1C2030' : '#ffffff',
+      border: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.12)',
+      borderHover: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.3)',
+      borderFocus: '#3B82F6',
+      boxShadowFocus: isDark
+        ? '0 0 0 3px rgba(59,130,246,0.15), 0 0 20px rgba(168,85,247,0.08)'
+        : '0 0 0 3px rgba(59,130,246,0.1)',
+      placeholderColor: isDark ? '#5A6080' : '#9ca3af',
+    },
+    Modal: { borderRadius: '24px' },
+    Select: { borderRadius: '14px' },
+    Tag: { borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600' },
+    Progress: {
+      fillColor: 'linear-gradient(90deg, #3B82F6, #A855F7)',
+      railColor: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(0,0,0,0.06)',
+    },
+  }
 })
 
-// PDF parser
+// ─── PDF ───
+const naiveTheme = computed(() => uiStore.theme === 'dark' ? darkTheme : null)
+
+// ─── PDF ───
 const { loading: pdfLoading, progress: pdfProgress, parseAndGenerate } = usePdfParser()
 
-// Current data
-const currentTree = computed(() => mindmapStore.getTree(sectionsStore.currentId))
-const currentNode = computed(() => currentTree.value ? findNode(currentTree.value, currentNodeId.value) : null)
-const questionCount = computed(() => qbStore.getAll(sectionsStore.currentId).length)
+// ─── Computed ───
+const currentTree = computed(() => mindmapStore.getTree(blockStore.currentId))
+const questionCount = computed(() => questionStore.getAll(blockStore.currentId).length)
 const nodeCount = computed(() => countAllNodes(currentTree.value))
-const practicedCount = computed(() => practiceStore.getPracticedNodes(sectionsStore.currentId))
+const practicedCount = computed(() => practiceStore.getPracticedNodes(blockStore.currentId))
 
-// Initialize
+// ─── Init ───
 onMounted(async () => {
   try {
-    await sectionsStore.load()
-    await mindmapStore.load(sectionsStore.currentId)
-    await qbStore.load(sectionsStore.currentId)
-    await practiceStore.load(sectionsStore.currentId)
-    await nextTick()
-    if (chartRef.value) initChart(chartRef.value)
-    renderTree(currentTree.value)
-    window.addEventListener('resize', resize)
-    // Hide loading
+    await blockStore.load()
+    await mindmapStore.load(blockStore.currentId)
+    await questionStore.load(blockStore.currentId)
+    await practiceStore.load(blockStore.currentId)
     const loading = document.getElementById('app-loading')
     if (loading) loading.style.display = 'none'
-    console.log('[App] Initialized successfully, section:', sectionsStore.currentId, 'nodes:', nodeCount.value)
+    console.log('[App] Ready — section:', blockStore.currentId, 'theme:', uiStore.theme)
   } catch (e) {
     console.error('[App] Init error:', e)
-    initError.value = e.message || String(e)
+    uiStore.initError = e.message || String(e)
     const loading = document.getElementById('app-loading')
     if (loading) loading.style.display = 'none'
     const errDiv = document.getElementById('app-error')
@@ -66,77 +135,107 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => { window.removeEventListener('resize', resize); dispose() })
-
-// Section switching
+// ─── Section switching ───
 async function onSwitchSection(id) {
-  await sectionsStore.switchTo(id)
+  await blockStore.switchTo(id)
   currentNodeId.value = null
   await mindmapStore.load(id)
-  await qbStore.load(id)
+  await questionStore.load(id)
   await practiceStore.load(id)
-  renderTree(currentTree.value)
 }
 
-async function onCreateSection(name) {
-  const sec = await sectionsStore.create(name)
+async function onCreateSection() {
+  const name = window.prompt('输入新板块名称:')
+  if (!name) return
+  const sec = await blockStore.create(name)
   if (sec) await mindmapStore.load(sec.id)
 }
+
 async function onDeleteSection(id) {
-  await sectionsStore.remove(id)
-  await mindmapStore.load(sectionsStore.currentId)
-  renderTree(currentTree.value)
+  const sec = blockStore.getById(id)
+  if (!sec) return
+  if (sec.isDefault) { message.warning('默认板块不可删除'); return }
+  const qs = questionStore.getAll(id)
+  if (qs.length > 0 && !window.confirm(`板块「${sec.name}」包含 ${qs.length} 道题目，确定删除？`)) return
+  await blockStore.remove(id)
+  await mindmapStore.load(blockStore.currentId)
 }
 
-// Mindmap ops
-async function onAddChild(parentId, name) {
-  await mindmapStore.addChild(sectionsStore.currentId, parentId, name)
-  renderTree(currentTree.value)
+// ─── Mindmap ops ───
+async function onAddChild({ nodeId, name }) {
+  if (!name) return
+  await mindmapStore.addChild(blockStore.currentId, nodeId, name)
 }
-async function onRename(nodeId, name) {
-  await mindmapStore.rename(sectionsStore.currentId, nodeId, name)
-  renderTree(currentTree.value)
+
+async function onRename({ nodeId, name }) {
+  await mindmapStore.rename(blockStore.currentId, nodeId, name)
 }
+
 async function onDeleteNode(nodeId) {
-  const count = await mindmapStore.removeNode(sectionsStore.currentId, nodeId)
+  await mindmapStore.removeNode(blockStore.currentId, nodeId)
   const ids = new Set(); ids.add(nodeId)
-  await qbStore.removeByNodeIds(sectionsStore.currentId, ids)
+  await questionStore.removeByNodeIds(blockStore.currentId, ids)
   if (currentNodeId.value === nodeId) currentNodeId.value = null
-  renderTree(currentTree.value)
-  return count
 }
 
-// PDF upload
+async function onUpdateExamPoints({ nodeId, points }) {
+  await mindmapStore.updateExamPoints(blockStore.currentId, nodeId, points)
+}
+
+// ─── Context menu actions ───
+function onContextAction({ action, nodeId }) {
+  if (action === 'addChild') {
+    const name = window.prompt('输入新节点名称:')
+    if (name) onAddChild({ nodeId, name })
+  } else if (action === 'edit') {
+    currentNodeId.value = nodeId
+  } else if (action === 'delete') {
+    const tree = mindmapStore.getTree(blockStore.currentId)
+    const node = findNode(tree, nodeId)
+    if (node && window.confirm(`确定删除节点「${node.name}」？`)) onDeleteNode(nodeId)
+  }
+}
+
+// ─── PDF upload ───
 async function onUploadPdf(file, sectionId) {
   showUpload.value = false
   const { tree } = await parseAndGenerate(file, sectionId)
   await mindmapStore.mergeImport(sectionId, tree)
-  if (sectionsStore.currentId !== sectionId) {
+  if (blockStore.currentId !== sectionId) {
     await onSwitchSection(sectionId)
-  } else {
-    renderTree(currentTree.value)
   }
 }
 
-// Question bank
-function onOpenQBank(nodeId) {
-  showQBank.value = true
-  if (nodeId) currentNodeId.value = nodeId
-}
-
-// Practice
+// ─── Practice ───
 function onStartPractice(nodeId) {
   currentNodeId.value = nodeId
-  showPractice.value = true
+  practiceQuestion.value = null
+  uiStore.previousView = uiStore.currentView
+  uiStore.currentView = 'practice'
 }
 
-// Export/Import
-const message = useMessage()
+function onPracticeSingle(question) {
+  practiceQuestion.value = question
+  uiStore.previousView = uiStore.currentView
+  uiStore.currentView = 'practice'
+}
+
+function onPracticeBack() {
+  uiStore.currentView = uiStore.previousView
+  practiceQuestion.value = null
+}
+
+function onPracticeDone() {
+  uiStore.currentView = uiStore.previousView
+  practiceQuestion.value = null
+}
+
+// ─── Export/Import ───
 function exportData() {
-  const data = { sections: sectionsStore.list, mindmaps: {}, questionBanks: {}, practices: {} }
-  sectionsStore.list.forEach(s => {
+  const data = { sections: blockStore.list, mindmaps: {}, questionBanks: {} }
+  blockStore.list.forEach(s => {
     data.mindmaps[s.id] = mindmapStore.getTree(s.id)
-    data.questionBanks[s.id] = qbStore.getAll(s.id)
+    data.questionBanks[s.id] = questionStore.getAll(s.id)
   })
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -154,106 +253,102 @@ function triggerImport() {
     const text = await file.text()
     try {
       const data = JSON.parse(text)
-      if (data.sections) { sectionsStore.list = data.sections; await sectionsStore.save() }
-      if (data.mindmaps) {
-        for (const [id, mm] of Object.entries(data.mindmaps)) {
-          await localforage.setItem('mm_' + id, mm)
-          mindmapStore.trees[id] = mm
-        }
+      if (data.sections) { blockStore.list = data.sections; await blockStore.save() }
+      if (data.mindmaps) for (const [id, mm] of Object.entries(data.mindmaps)) {
+        await localforage.setItem('mm_' + id, mm); mindmapStore.trees[id] = mm
       }
-      if (data.questionBanks) {
-        for (const [id, qb] of Object.entries(data.questionBanks)) {
-          await localforage.setItem('qb_' + id, qb)
-          qbStore.banks[id] = qb
-        }
+      if (data.questionBanks) for (const [id, qb] of Object.entries(data.questionBanks)) {
+        await localforage.setItem('qb_' + id, qb); questionStore.banks[id] = qb
       }
       message.success('数据导入成功')
-      await onSwitchSection(sectionsStore.currentId)
+      await onSwitchSection(blockStore.currentId)
     } catch { message.error('文件格式错误') }
   }
   input.click()
 }
-
-// Watch for tree changes to re-render
-watch(currentTree, (tree) => { if (tree) renderTree(tree) }, { deep: true })
-
-// Context menu
-watch(() => contextMenu.value.show, (v) => {
-  if (!v) return
-  const handler = () => { hideContextMenu(); document.removeEventListener('click', handler, true) }
-  setTimeout(() => document.addEventListener('click', handler, true), 0)
-})
-function onContextAction(action) {
-  const nodeId = contextMenu.value.nodeId
-  hideContextMenu()
-  if (!nodeId) return
-  if (action === 'addChild') {
-    const name = window.prompt('输入新节点名称:')
-    if (name) onAddChild(nodeId, name)
-  } else if (action === 'edit') {
-    currentNodeId.value = nodeId
-  } else if (action === 'delete') {
-    const node = findNode(currentTree.value, nodeId)
-    if (node && window.confirm(`确定删除节点「${node.name}」？`)) onDeleteNode(nodeId)
-  }
-}
 </script>
 
 <template>
-  <n-config-provider>
+  <n-config-provider :theme="naiveTheme" :theme-overrides="themeOverrides">
     <n-message-provider>
-      <!-- Error state -->
-      <div v-if="initError" style="padding:40px;text-align:center">
-        <h2 style="color:#ef4444;margin-bottom:12px">应用启动失败</h2>
-        <pre style="background:#fef2f2;padding:16px;border-radius:8px;max-width:600px;margin:0 auto;font-size:.8rem;white-space:pre-wrap">{{ initError }}</pre>
+      <!-- Ambient glow -->
+      <div class="ambient-glow" :style="{
+        background: uiStore.theme === 'dark'
+          ? `radial-gradient(600px circle at ${mouseX}% ${mouseY}%, rgba(59,130,246,0.04), transparent 60%), radial-gradient(500px circle at ${80 - mouseX * 0.3}% ${60 - mouseY * 0.2}%, rgba(168,85,247,0.03), transparent 50%)`
+          : `radial-gradient(600px circle at ${mouseX}% ${mouseY}%, rgba(59,130,246,0.03), transparent 60%), radial-gradient(500px circle at ${80 - mouseX * 0.3}% ${60 - mouseY * 0.2}%, rgba(139,92,246,0.02), transparent 50%)`
+      }"></div>
+
+      <!-- Error -->
+      <div v-if="uiStore.initError" class="detail-empty" style="height:100vh;position:relative;z-index:2">
+        <h2 style="color:var(--danger);margin-bottom:12px">启动失败</h2>
+        <pre style="background:var(--danger-bg);padding:16px;border-radius:8px;max-width:600px;font-size:.8rem;white-space:pre-wrap">{{ uiStore.initError }}</pre>
       </div>
 
-      <!-- Normal app -->
-      <div v-else class="app-layout">
+      <!-- App -->
+      <div v-else class="app-layout" @mousemove="onMouseMove">
         <AppHeader
-          :sections="sectionsStore.list"
-          :current-id="sectionsStore.currentId"
+          :section-name="blockStore.current?.name || '—'"
           :node-count="nodeCount"
           :question-count="questionCount"
           :practiced-count="practicedCount"
-          @switch="onSwitchSection"
-          @create="onCreateSection"
-          @delete="onDeleteSection"
-          @open-qbank="onOpenQBank()"
+          :theme="uiStore.theme"
+          :current-view="uiStore.currentView"
+          @toggle-theme="toggleTheme"
           @upload="showUpload = true"
           @export="exportData"
           @import="triggerImport"
+          @toggle-sidebar="uiStore.sidebarOpen = !uiStore.sidebarOpen"
+          @open-qbank="uiStore.currentView = 'questionBank'"
+          @back-mindmap="uiStore.currentView = 'mindmap'"
         />
 
-        <div class="app-main">
-          <div class="mm-panel">
-            <div ref="chartRef" class="chart"></div>
-            <div v-if="contextMenu.show" class="chart-context-menu"
-                 :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }">
-              <div class="menu-item" @click="onContextAction('addChild')">➕ 添加子节点</div>
-              <div class="menu-item" @click="onContextAction('edit')">✏️ 编辑名称</div>
-              <div class="menu-item" style="color:#ef4444" @click="onContextAction('delete')">🗑️ 删除节点</div>
-            </div>
-          </div>
+        <MindMapView
+          v-show="uiStore.currentView === 'mindmap'"
+          :detail-panel-open="detailPanelOpen"
+          @switch-section="onSwitchSection"
+          @create-section="onCreateSection"
+          @delete-section="onDeleteSection"
+          @add-child="onAddChild"
+          @rename="onRename"
+          @delete-node="onDeleteNode"
+          @update-exam-points="onUpdateExamPoints"
+          @add-question="openDetailPanel"
+          @start-practice="onStartPractice"
+          @context-action="onContextAction"
+          @node-click="openDetailPanel"
+          @close-detail="closeDetailPanel"
+        />
 
-          <DetailPanel
-            :node="currentNode"
-            :section-id="sectionsStore.currentId"
-            @rename="(name) => onRename(currentNodeId, name)"
-            @add-child="(name) => onAddChild(currentNodeId, name)"
-            @delete="() => onDeleteNode(currentNodeId)"
-            @update-exam-points="(pts) => mindmapStore.updateExamPoints(sectionsStore.currentId, currentNodeId, pts)"
-            @add-question="onOpenQBank(currentNodeId)"
-            @start-practice="onStartPractice(currentNodeId)"
-          />
-        </div>
+        <QuestionBankView
+          v-show="uiStore.currentView === 'questionBank'"
+          :sections="blockStore.list"
+          :current-section-id="blockStore.currentId"
+          @switch-section="onSwitchSection"
+          @practice-single="onPracticeSingle"
+        />
 
-        <QuestionBankModal v-if="showQBank" :section-id="sectionsStore.currentId" :preset-node-id="currentNodeId" @close="showQBank = false" />
-        <PracticeModal v-if="showPractice" :section-id="sectionsStore.currentId" :node-id="currentNodeId" @close="showPractice = false" />
-        <UploadPdfModal v-if="showUpload" :sections="sectionsStore.list" :current-section-id="sectionsStore.currentId"
-          :loading="pdfLoading" :progress="pdfProgress" @close="showUpload = false" @upload="onUploadPdf" />
-        <InstallBanner />
+        <PracticeView
+          v-show="uiStore.currentView === 'practice'"
+          :section-id="blockStore.currentId"
+          :node-id="currentNodeId"
+          :single-question="practiceQuestion"
+          @back="onPracticeBack"
+          @done="onPracticeDone"
+        />
+
+        <!-- Mobile bottom nav -->
+        <nav class="bottom-nav">
+          <button class="nav-item" :class="{ active: uiStore.sidebarOpen }" @click="uiStore.sidebarOpen = !uiStore.sidebarOpen">📋<span>板块</span></button>
+          <button class="nav-item" :class="{ active: uiStore.currentView === 'mindmap' }" @click="uiStore.currentView = 'mindmap'">🗺️<span>导图</span></button>
+          <button class="nav-item" :class="{ active: uiStore.currentView === 'questionBank' }" @click="uiStore.currentView = 'questionBank'">📝<span>题库</span></button>
+          <button class="nav-item" @click="showUpload = true">📄<span>导入</span></button>
+          <button class="nav-item" @click="toggleTheme">{{ uiStore.theme === 'light' ? '🌙' : '☀️' }}<span>主题</span></button>
+        </nav>
       </div>
+
+      <UploadPdfModal v-if="showUpload" :sections="blockStore.list" :current-section-id="blockStore.currentId"
+        :loading="pdfLoading" :progress="pdfProgress" @close="showUpload = false" @upload="onUploadPdf" />
+      <InstallBanner />
     </n-message-provider>
   </n-config-provider>
 </template>

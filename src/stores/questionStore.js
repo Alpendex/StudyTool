@@ -3,7 +3,7 @@ import localforage from 'localforage'
 import { MOCK_QUESTIONS } from '../data/mockQuestions.js'
 import { qid } from '../utils/helpers.js'
 
-export const useQuestionBankStore = defineStore('questionBank', () => {
+export const useQuestionStore = defineStore('questionBank', () => {
   const banks = ref({})   // { [sectionId]: Question[] }
 
   async function load(sectionId) {

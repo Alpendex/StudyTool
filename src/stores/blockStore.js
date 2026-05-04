@@ -3,7 +3,7 @@ import localforage from 'localforage'
 import { DEFAULT_SECTIONS } from '../data/templates.js'
 import { uid } from '../utils/helpers.js'
 
-export const useSectionsStore = defineStore('sections', () => {
+export const useBlockStore = defineStore('sections', () => {
   const list = ref([])
   const currentId = ref('math')
   const loaded = ref(false)
@@ -11,7 +11,6 @@ export const useSectionsStore = defineStore('sections', () => {
   async function load() {
     let data = await localforage.getItem('sections')
     if (!data || !Array.isArray(data)) data = JSON.parse(JSON.stringify(DEFAULT_SECTIONS))
-    // Ensure defaults exist
     DEFAULT_SECTIONS.forEach(ds => {
       if (!data.find(s => s.id === ds.id)) data.unshift({ ...ds })
     })
@@ -39,7 +38,6 @@ export const useSectionsStore = defineStore('sections', () => {
     if (!sec || sec.isDefault) return false
     list.value = list.value.filter(s => s.id !== id)
     await save()
-    // Clean data
     await localforage.removeItem('mm_' + id)
     await localforage.removeItem('qb_' + id)
     await localforage.removeItem('pr_' + id)

@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import localforage from 'localforage'
 import { MINDMAP_TEMPLATES } from '../data/templates.js'
-import { uid, addIds, ensureIds, findNode, findParent,
-         collectNodeIds, deepClone, mergeMindMaps } from '../utils/helpers.js'
+import { uid, deepClone } from '../utils/helpers.js'
+import { addIds, ensureIds, findNode, findParent,
+         collectNodeIds, mergeMindMaps } from '../utils/mindmapHelper.js'
 
 export const useMindmapStore = defineStore('mindmap', () => {
   const trees = ref({})

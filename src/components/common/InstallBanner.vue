@@ -44,11 +44,11 @@ function dismiss() {
 <template>
   <div v-if="show" class="install-banner">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem">📚</div>
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--gradient-accent);display:flex;align-items:center;justify-content:center;color:var(--accent-foreground);font-size:1.2rem">📚</div>
       <div style="font-size:.8rem">
-        <strong style="font-size:.85rem;color:#1f2937">添加到主屏幕</strong>
-        <span v-if="!isIOS" style="color:#6b7280;display:block">随时随地刷题学习</span>
-        <span v-else style="color:#6b7280;display:block">点击分享按钮 → 「添加到主屏幕」</span>
+        <strong style="font-size:.85rem;color:var(--foreground)">添加到主屏幕</strong>
+        <span v-if="!isIOS" style="color:var(--muted-foreground);display:block">随时随地刷题学习</span>
+        <span v-else style="color:var(--muted-foreground);display:block">点击分享按钮 → 「添加到主屏幕」</span>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
