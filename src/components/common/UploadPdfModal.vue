@@ -32,7 +32,7 @@ function onDrop(e) {
 
 <template>
   <n-modal :show="true" preset="card" title="📄 上传 PDF 导入" style="max-width:500px;width:95%"
-    :on-close="emit('close')" :mask-closable="!loading">
+    @close="emit('close')" :mask-closable="!loading">
     <template v-if="!loading">
       <!-- Upload zone -->
       <div class="upload-zone" :class="{ 'upload-active': dragOver }"
