@@ -66,8 +66,8 @@ export function toEChartsTree(node, depth = 0) {
 
 // Merge two mind maps
 export function mergeMindMaps(existing, incoming) {
-  if (!incoming?.children) return existing
-  const merged = deepClone(existing)
+  if (!incoming?.children) return existing || incoming
+  const merged = existing ? deepClone(existing) : { name: incoming.name || '导入', children: [], id: incoming.id || uid() }
   ensureIds(merged)
   if (!merged.children) merged.children = []
   const nameMap = new Map()

@@ -198,13 +198,23 @@ function onContextAction({ action, nodeId }) {
 
 // ─── PDF upload ───
 async function onUploadPdf(file, sectionId) {
-  const { tree } = await parseAndGenerate(file, sectionId)
-  await mindmapStore.mergeImport(sectionId, tree)
-  if (blockStore.currentId !== sectionId) {
-    await onSwitchSection(sectionId)
+  try {
+    const { tree } = await parseAndGenerate(file, sectionId)
+    // Ensure target section's tree is loaded before merging
+    if (!mindmapStore.getTree(sectionId)) {
+      await mindmapStore.load(sectionId)
+    }
+    await mindmapStore.mergeImport(sectionId, tree)
+    if (blockStore.currentId !== sectionId) {
+      await onSwitchSection(sectionId)
+    }
+    showUpload.value = false
+    message.success('PDF 导入完成')
+  } catch (e) {
+    console.error('[PDF Upload]', e)
+    message.error('PDF 解析失败：' + (e.message || '未知错误'))
+    showUpload.value = false
   }
-  showUpload.value = false
-  message.success('PDF 导入完成')
 }
 
 // ─── Practice ───
