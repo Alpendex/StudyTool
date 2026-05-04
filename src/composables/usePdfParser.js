@@ -29,14 +29,18 @@ export function usePdfParser() {
         const page = await pdf.getPage(i)
         const content = await page.getTextContent()
         text += content.items.map(it => it.str).join(' ') + '\n'
+        if (i % 10 === 0 || i === pagesToRead) {
+          progress.value = `解析页面 (${i}/${pagesToRead})...`
+        }
       }
 
-      // Simulate LLM processing
-      progress.value = 'AI分析中...'
-      const delay = 1200 + Math.random() * 2000
+      // Match keywords against templates
+      progress.value = 'AI正在识别知识点...'
+      const delay = 800 + Math.random() * 1200
       await new Promise(r => setTimeout(r, delay))
 
       // Generate mind map
+      progress.value = '正在生成思维导图...'
       const tpl = MINDMAP_TEMPLATES[sectionId]
       const base = tpl ? deepClone(tpl) : { name: sectionId, children: [] }
 

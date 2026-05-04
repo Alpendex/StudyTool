@@ -68,8 +68,9 @@ function onDrop(e) {
     <template v-else>
       <div class="upload-loading">
         <n-spin size="medium" />
-        <p class="upload-progress">{{ progress || '处理中...' }}</p>
+        <p class="upload-progress">{{ progress || '准备中...' }}</p>
         <p class="upload-sub" style="margin-top:0">正在解析 PDF 并生成思维导图</p>
+        <div class="loading-bar"><div class="loading-bar-fill"></div></div>
       </div>
     </template>
   </n-modal>
@@ -95,5 +96,20 @@ function onDrop(e) {
 .upload-progress {
   margin-top: 14px; color: var(--text-secondary);
   font-size: var(--font-base); font-weight: 500;
+}
+.loading-bar {
+  width: 100%; height: 4px; margin-top: 16px;
+  background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.loading-bar-fill {
+  width: 30%; height: 100%;
+  background: var(--accent-gradient);
+  border-radius: 2px;
+  animation: loading-slide 1.4s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(430%); }
 }
 </style>

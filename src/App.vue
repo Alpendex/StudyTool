@@ -198,12 +198,13 @@ function onContextAction({ action, nodeId }) {
 
 // ─── PDF upload ───
 async function onUploadPdf(file, sectionId) {
-  showUpload.value = false
   const { tree } = await parseAndGenerate(file, sectionId)
   await mindmapStore.mergeImport(sectionId, tree)
   if (blockStore.currentId !== sectionId) {
     await onSwitchSection(sectionId)
   }
+  showUpload.value = false
+  message.success('PDF 导入完成')
 }
 
 // ─── Practice ───
