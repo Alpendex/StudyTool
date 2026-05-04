@@ -214,15 +214,8 @@ async function onUploadPdf(file, sectionId, mode = 'new', targetNodeId = null) {
 
     let result
     if (mode === 'merge' && targetNodeId) {
-      // Mode B: mount only the PDF-extracted subtree under the target node
-      if (pdfRoot) {
-        result = await mindmapStore.mountUnder(sectionId, targetNodeId, pdfRoot)
-      } else {
-        // No PDF content extracted — still merge the full tree as fallback
-        result = await mindmapStore.mergeImport(sectionId, tree)
-      }
+      result = await mindmapStore.mountUnder(sectionId, targetNodeId, pdfRoot)
     } else {
-      // Mode A: merge full tree (template + PDF) at root level
       result = await mindmapStore.mergeImport(sectionId, tree)
     }
 

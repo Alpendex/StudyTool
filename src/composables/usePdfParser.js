@@ -47,19 +47,21 @@ export function usePdfParser() {
 
       const keywords = TOPIC_DETECTORS[sectionId] || []
       const matched = keywords.filter(k => text.toLowerCase().includes(k.toLowerCase()))
-      let pdfRoot = null
-      if (matched.length > 0) {
-        pdfRoot = {
-          name: `PDF: ${file.name}`,
-          children: matched.slice(0, 5).map(t => ({
-            name: t,
-            examPoints: [`从PDF识别的「${t}」相关考点`, '建议结合教材深入学习', '历年考研重点考查内容']
-          })),
-          sourceFile: file.name,
-          createdAt: new Date().toISOString()
-        }
-        base.children.push(pdfRoot)
+      const pdfRoot = {
+        name: `PDF: ${file.name}`,
+        children: matched.length > 0
+          ? matched.slice(0, 5).map(t => ({
+              name: t,
+              examPoints: [`从PDF识别的「${t}」相关考点`, '建议结合教材深入学习', '历年考研重点考查内容']
+            }))
+          : [],
+        sourceFile: file.name,
+        createdAt: new Date().toISOString()
       }
+      if (matched.length === 0) {
+        pdfRoot.examPoints = ['未匹配到预设关键词，建议手动添加考点']
+      }
+      base.children.push(pdfRoot)
 
       markSource(base, file.name)
       addIds(base)
