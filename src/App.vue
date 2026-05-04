@@ -201,7 +201,7 @@ function onContextAction({ action, nodeId }) {
 // ─── PDF upload ───
 async function onUploadPdf(file, sectionId, mode = 'new', targetNodeId = null) {
   try {
-    const { tree } = await parseAndGenerate(file, sectionId)
+    const { tree, pdfRoot } = await parseAndGenerate(file, sectionId)
     // Ensure target section's tree is loaded before merging
     if (!mindmapStore.getTree(sectionId)) {
       await mindmapStore.load(sectionId)
@@ -214,8 +214,15 @@ async function onUploadPdf(file, sectionId, mode = 'new', targetNodeId = null) {
 
     let result
     if (mode === 'merge' && targetNodeId) {
-      result = await mindmapStore.mountUnder(sectionId, targetNodeId, tree)
+      // Mode B: mount only the PDF-extracted subtree under the target node
+      if (pdfRoot) {
+        result = await mindmapStore.mountUnder(sectionId, targetNodeId, pdfRoot)
+      } else {
+        // No PDF content extracted — still merge the full tree as fallback
+        result = await mindmapStore.mergeImport(sectionId, tree)
+      }
     } else {
+      // Mode A: merge full tree (template + PDF) at root level
       result = await mindmapStore.mergeImport(sectionId, tree)
     }
 

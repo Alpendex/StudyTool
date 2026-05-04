@@ -47,8 +47,9 @@ export function usePdfParser() {
 
       const keywords = TOPIC_DETECTORS[sectionId] || []
       const matched = keywords.filter(k => text.toLowerCase().includes(k.toLowerCase()))
+      let pdfRoot = null
       if (matched.length > 0) {
-        const extractedNode = {
+        pdfRoot = {
           name: `PDF: ${file.name}`,
           children: matched.slice(0, 5).map(t => ({
             name: t,
@@ -57,13 +58,13 @@ export function usePdfParser() {
           sourceFile: file.name,
           createdAt: new Date().toISOString()
         }
-        base.children.push(extractedNode)
+        base.children.push(pdfRoot)
       }
 
       markSource(base, file.name)
       addIds(base)
       progress.value = '完成'
-      return { tree: base, totalPages }
+      return { tree: base, totalPages, pdfRoot }
     } finally {
       loading.value = false
     }
